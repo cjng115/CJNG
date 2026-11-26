@@ -1,0 +1,695 @@
+[
+ {
+  "id": 2526,
+  "t": "Kirara",
+  "en": null,
+  "type": "OVA",
+  "eps": 1,
+  "from": "2000-09-21",
+  "to": "2000-09-21",
+  "was": null,
+  "cands": [
+   {
+    "k": "movie",
+    "id": 171106,
+    "name": "Kirara",
+    "orig": "Kirara",
+    "date": "2000-09-20",
+    "min": 39,
+    "genres": "Romance/Comedy/Animation"
+   },
+   {
+    "k": "movie",
+    "id": 1249052,
+    "name": "Kyoto Yokai Map 2: A 400-Year-Old Ice Woman Living on Kirara Slope",
+    "orig": "京都妖怪地図2 きらら坂に住む400歳の氷女",
+    "date": "1981-08-15",
+    "min": 91,
+    "genres": "Horror/Mystery/TV Movie"
+   },
+   {
+    "k": "movie",
+    "id": 1472180,
+    "name": "SILENT SIREN - SILENT SIREN Kirara Revenge - Saisai 10-sai Sai - @ Hibiya Open Air Concert Hal",
+    "orig": "SILENT SIREN - SILENT SIREN Kirara Revenge - Saisai 10-sai Sai - @ Hibiya Open Air Concert Hal",
+    "date": "2021-12-15",
+    "min": 0,
+    "genres": ""
+   },
+   {
+    "k": "movie",
+    "id": 1405042,
+    "name": "Kirarazaka",
+    "orig": "Kirarazaka",
+    "date": "1925-06-01",
+    "min": 0,
+    "genres": "Action/History"
+   }
+  ]
+ },
+ {
+  "id": 2593,
+  "t": "Kara no Kyoukai Movie 1: Fukan Fuukei",
+  "en": "The Garden of Sinners Chapter 1: Overlooking View",
+  "type": "Movie",
+  "eps": 1,
+  "from": "2007-12-01",
+  "to": "2007-12-01",
+  "was": null,
+  "cands": [
+   {
+    "k": "movie",
+    "id": 23150,
+    "name": "The Garden of Sinners: Overlooking View",
+    "orig": "劇場版「空の境界」第一章 俯瞰風景",
+    "date": "2007-12-01",
+    "min": 50,
+    "genres": "Animation/Crime/Action/Fantasy/Mystery"
+   },
+   {
+    "k": "movie",
+    "id": 23153,
+    "name": "The Garden of Sinners: Remaining Sense of Pain",
+    "orig": "劇場版「空の境界」第三章 痛覚残留",
+    "date": "2008-02-09",
+    "min": 58,
+    "genres": "Crime/Animation/Action/Fantasy/Mystery/Drama"
+   },
+   {
+    "k": "movie",
+    "id": 23166,
+    "name": "The Garden of Sinners: Oblivion Recording",
+    "orig": "劇場版「空の境界」第六章 忘却録音",
+    "date": "2008-12-20",
+    "min": 59,
+    "genres": "Animation/Fantasy/Mystery/Romance"
+   },
+   {
+    "k": "movie",
+    "id": 23154,
+    "name": "The Garden of Sinners: The Hollow Shrine",
+    "orig": "劇場版「空の境界」第四章 伽藍の洞",
+    "date": "2008-05-24",
+    "min": 45,
+    "genres": "Animation/Fantasy/Action/Mystery"
+   }
+  ]
+ },
+ {
+  "id": 6443,
+  "t": "AIKa Zero",
+  "en": null,
+  "type": "OVA",
+  "eps": 3,
+  "from": "2009-07-06",
+  "to": "2009-12-22",
+  "was": {
+   "k": "tv",
+   "id": 43249,
+   "s": 3
+  },
+  "cands": [
+   {
+    "k": "tv",
+    "id": 43631,
+    "name": "AIKa ZERO",
+    "orig": "AIKa ZERO",
+    "date": "2009-03-01",
+    "eps": 3,
+    "genres": "Action & Adventure/Animation/Comedy",
+    "seasons": "0:3(2009-08-25) 1:3(2009-03-01)"
+   }
+  ]
+ },
+ {
+  "id": 9260,
+  "t": "Kizumonogatari I: Tekketsu-hen",
+  "en": "Kizumonogatari Part 1: Iron-Blooded",
+  "type": "Movie",
+  "eps": 1,
+  "from": "2016-01-08",
+  "to": "2016-01-08",
+  "was": null,
+  "cands": [
+   {
+    "k": "movie",
+    "id": 357786,
+    "name": "Kizumonogatari Part 1: Tekketsu",
+    "orig": "傷物語〈Ⅰ鉄血篇〉",
+    "date": "2016-01-08",
+    "min": 63,
+    "genres": "Animation/Fantasy/Drama/Mystery/Action"
+   },
+   {
+    "k": "movie",
+    "id": 362584,
+    "name": "Kizumonogatari Part 2: Nekketsu",
+    "orig": "傷物語〈Ⅱ熱血篇〉",
+    "date": "2016-08-19",
+    "min": 68,
+    "genres": "Animation/Fantasy/Mystery"
+   },
+   {
+    "k": "movie",
+    "id": 362585,
+    "name": "Kizumonogatari Part 3: Reiketsu",
+    "orig": "傷物語〈Ⅲ冷血篇〉",
+    "date": "2017-01-06",
+    "min": 83,
+    "genres": "Animation/Fantasy/Mystery"
+   },
+   {
+    "k": "movie",
+    "id": 859714,
+    "name": "Iron Blooded Martial Spirit",
+    "orig": "铁血武魂",
+    "date": "2021-08-09",
+    "min": 81,
+    "genres": ""
+   }
+  ]
+ },
+ {
+  "id": 11981,
+  "t": "Mahou Shoujo Madoka☆Magica Movie 3: Hangyaku no Monogatari",
+  "en": "Puella Magi Madoka Magica the Movie: Rebellion",
+  "type": "Movie",
+  "eps": 1,
+  "from": "2013-10-26",
+  "to": "2013-10-26",
+  "was": null,
+  "cands": [
+   {
+    "k": "movie",
+    "id": 212162,
+    "name": "Puella Magi Madoka Magica the Movie -Rebellion-",
+    "orig": "劇場版 魔法少女まどか☆マギカ[新編]叛逆の物語",
+    "date": "2013-10-26",
+    "min": 117,
+    "genres": "Mystery/Animation/Fantasy"
+   },
+   {
+    "k": "movie",
+    "id": 152042,
+    "name": "Puella Magi Madoka Magica the Movie Part I: Beginnings",
+    "orig": "劇場版 魔法少女まどか☆マギカ [前編] 始まりの物語",
+    "date": "2012-10-05",
+    "min": 131,
+    "genres": "Thriller/Animation/Fantasy"
+   },
+   {
+    "k": "movie",
+    "id": 152044,
+    "name": "Puella Magi Madoka Magica the Movie Part II: Eternal",
+    "orig": "劇場版 魔法少女まどか☆マギカ[後編] 永遠の物語",
+    "date": "2012-10-13",
+    "min": 109,
+    "genres": "Thriller/Animation/Fantasy"
+   },
+   {
+    "k": "movie",
+    "id": 76609,
+    "name": "Rebellion",
+    "orig": "L'ordre et la morale",
+    "date": "2011-11-16",
+    "min": 136,
+    "genres": "Drama/Action/History"
+   }
+  ]
+ },
+ {
+  "id": 17157,
+  "t": "Nozoki Ana",
+  "en": null,
+  "type": "OVA",
+  "eps": 1,
+  "from": "2013-02-28",
+  "to": "2013-02-28",
+  "was": null,
+  "cands": [
+   {
+    "k": "tv",
+    "id": 125182,
+    "name": "A Peephole",
+    "orig": "ノ・ゾ・キ・ア・ナ",
+    "date": "2014-07-02",
+    "eps": 8,
+    "genres": "Drama",
+    "seasons": "1:8(2014-07-02)"
+   },
+   {
+    "k": "movie",
+    "id": 235407,
+    "name": "A Peephole",
+    "orig": "ノ・ゾ・キ・ア・ナ",
+    "date": "2013-02-28",
+    "min": 56,
+    "genres": "Animation/Romance/TV Movie"
+   },
+   {
+    "k": "movie",
+    "id": 279281,
+    "name": "A Peephole",
+    "orig": "ノ・ゾ・キ・ア・ナ",
+    "date": "2014-06-28",
+    "min": 88,
+    "genres": "Mystery"
+   }
+  ]
+ },
+ {
+  "id": 33050,
+  "t": "Fate/stay night Movie: Heaven's Feel - III. Spring Song",
+  "en": "Fate/stay night: Heaven's Feel - III. Spring Song",
+  "type": "Movie",
+  "eps": 1,
+  "from": "2020-08-15",
+  "to": "2020-08-15",
+  "was": null,
+  "cands": [
+   {
+    "k": "movie",
+    "id": 390635,
+    "name": "Fate/stay night: Heaven's Feel III. Spring Song",
+    "orig": "劇場版「Fate/stay night [Heaven’s Feel]」Ⅲ.spring song",
+    "date": "2020-08-15",
+    "min": 120,
+    "genres": "Animation/Romance/Fantasy/Action/Drama"
+   },
+   {
+    "k": "movie",
+    "id": 390634,
+    "name": "Fate/stay night: Heaven's Feel II. Lost Butterfly",
+    "orig": "劇場版「Fate/stay night [Heaven’s Feel]」Ⅱ.lost butterfly",
+    "date": "2019-01-12",
+    "min": 117,
+    "genres": "Animation/Action/Fantasy/Drama/Romance"
+   },
+   {
+    "k": "movie",
+    "id": 283984,
+    "name": "Fate/stay night: Heaven's Feel I. Presage Flower",
+    "orig": "劇場版「Fate/stay night [Heaven’s Feel]」Ⅰ.presage flower",
+    "date": "2017-10-14",
+    "min": 120,
+    "genres": "Action/Animation/Drama/Fantasy/Romance"
+   },
+   {
+    "k": "movie",
+    "id": 1456057,
+    "name": "Fate/Stay Night 20th Anniversary Commemorative: Unlimited Blade Works Concert",
+    "orig": "「Fate/stay night」20周年記念「Fate/stay night [Unlimited Blade Works]」コンサート",
+    "date": "2025-03-19",
+    "min": 93,
+    "genres": "Music"
+   }
+  ]
+ },
+ {
+  "id": 33309,
+  "t": "Jie Mo Ren",
+  "en": "The Devil Ring",
+  "type": "ONA",
+  "eps": 14,
+  "from": "2016-04-27",
+  "to": "2016-07-27",
+  "was": null,
+  "cands": [
+   {
+    "k": "tv",
+    "id": 79635,
+    "name": "The Devil Ring",
+    "orig": "戒魔人",
+    "date": "2016-04-27",
+    "eps": 14,
+    "genres": "Animation/Sci-Fi & Fantasy",
+    "seasons": "1:14(2016-04-27)"
+   }
+  ]
+ },
+ {
+  "id": 33589,
+  "t": "ViVid Strike!",
+  "en": null,
+  "type": "TV",
+  "eps": 12,
+  "from": "2016-10-02",
+  "to": "2016-12-18",
+  "was": {
+   "k": "tv",
+   "id": 19836,
+   "s": 5
+  },
+  "cands": [
+   {
+    "k": "tv",
+    "id": 68096,
+    "name": "ViVid Strike！",
+    "orig": "ViVid Strike！",
+    "date": "2016-10-02",
+    "eps": 12,
+    "genres": "Action & Adventure/Animation",
+    "seasons": "0:3(2017-01-25) 1:12(2016-10-02)"
+   },
+   {
+    "k": "tv",
+    "id": 19836,
+    "name": "Magical Girl Lyrical Nanoha",
+    "orig": "魔法少女リリカルなのは",
+    "date": "2004-10-02",
+    "eps": 64,
+    "genres": "Animation/Action & Adventure/Drama/Sci-Fi & Fantasy",
+    "seasons": "0:24(?) 1:13(2004-10-02) 2:13(2005-10-02) 3:26(2007-04-02) 4:12(2015-04-03)"
+   }
+  ]
+ },
+ {
+  "id": 33883,
+  "t": "Chao You Bing",
+  "en": null,
+  "type": "ONA",
+  "eps": 4,
+  "from": "2014-04-25",
+  "to": "2014-08-20",
+  "was": null,
+  "cands": [
+   {
+    "k": "tv",
+    "id": 300428,
+    "name": "超有病",
+    "orig": "超有病",
+    "date": "2014-02-17",
+    "eps": 4,
+    "genres": "Comedy/Animation/Action & Adventure",
+    "seasons": "1:4(2014-02-17)"
+   }
+  ]
+ },
+ {
+  "id": 36291,
+  "t": "Ling Yu",
+  "en": null,
+  "type": "ONA",
+  "eps": 10,
+  "from": "2015-10-22",
+  "to": "2015-12-24",
+  "was": null,
+  "cands": [
+   {
+    "k": "tv",
+    "id": 79621,
+    "name": "The World of Fantasy",
+    "orig": "灵域",
+    "date": "2015-10-22",
+    "eps": 68,
+    "genres": "Animation/Action & Adventure/Sci-Fi & Fantasy",
+    "seasons": "1:10(2015-10-22) 2:10(2016-02-18) 3:12(2016-07-21) 4:12(2016-12-08) 5:12(2017-07-20) 6:12(2018-04-20)"
+   },
+   {
+    "k": "tv",
+    "id": 293731,
+    "name": "Ling Yu Love",
+    "orig": "灵玉情缘",
+    "date": "2021-08-13",
+    "eps": 25,
+    "genres": "Sci-Fi & Fantasy/Drama",
+    "seasons": "1:25(2021-08-13)"
+   },
+   {
+    "k": "tv",
+    "id": 275864,
+    "name": "Ling Ke Yu Nan Hua",
+    "orig": "灵珂与南华",
+    "date": "2022-07-19",
+    "eps": 18,
+    "genres": "Drama",
+    "seasons": "1:18(2022-07-19)"
+   },
+   {
+    "k": "tv",
+    "id": 49217,
+    "name": "Center Stage: Ruan Ling Yu",
+    "orig": "阮玲玉",
+    "date": "2005-11-27",
+    "eps": 30,
+    "genres": "Drama",
+    "seasons": "1:30(2005-11-27)"
+   }
+  ]
+ },
+ {
+  "id": 37242,
+  "t": "Hoshi to Tsubasa no Paradox",
+  "en": "Starwing Paradox",
+  "type": "ONA",
+  "eps": 2,
+  "from": "2018-02-07",
+  "to": "2018-11-07",
+  "was": null,
+  "cands": []
+ },
+ {
+  "id": 55629,
+  "t": "Iya na Kao sare nagara Opantsu Misete Moraitai ver 3.0",
+  "en": null,
+  "type": "OVA",
+  "eps": 1,
+  "from": "2023-02-10",
+  "to": "2023-02-10",
+  "was": null,
+  "cands": [
+   {
+    "k": "tv",
+    "id": 80867,
+    "name": "I Want You to Make a Disgusted Face and Show Me Your Underwear",
+    "orig": "嫌な顔されながらおパンツ見せてもらいたい",
+    "date": "2018-07-14",
+    "eps": 18,
+    "genres": "Animation",
+    "seasons": "0:6(2018-08-13) 1:6(2018-07-14) 2:6(2019-11-22) 3:6(2026-04-30) 4:0(?)"
+   }
+  ]
+ },
+ {
+  "id": 56765,
+  "t": "Zhengjing Shao Zhu de Xingfu Shenghuo",
+  "en": "The Little Master's Better Life",
+  "type": "ONA",
+  "eps": 12,
+  "from": "2023-10-22",
+  "to": "2023-12-31",
+  "was": null,
+  "cands": [
+   {
+    "k": "tv",
+    "id": 237421,
+    "name": "The Little Master's Better Life",
+    "orig": "正经少主的幸福生活",
+    "date": "2023-10-22",
+    "eps": 12,
+    "genres": "Animation/Sci-Fi & Fantasy/Action & Adventure",
+    "seasons": "1:12(2023-10-22)"
+   }
+  ]
+ },
+ {
+  "id": 57961,
+  "t": "Rakuen Tsuihou: Kokoro no Resonance",
+  "en": null,
+  "type": "Movie",
+  "eps": 1,
+  "from": "2026-11-13",
+  "to": "2026-11-13",
+  "was": null,
+  "cands": [
+   {
+    "k": "movie",
+    "id": 1236857,
+    "name": "Liberated from Paradise: Resonance of the Heart",
+    "orig": "楽園追放 心のレゾナンス",
+    "date": "2026-11-13",
+    "min": 128,
+    "genres": "Animation/Science Fiction/Action/Adventure"
+   },
+   {
+    "k": "movie",
+    "id": 304023,
+    "name": "Expelled from Paradise",
+    "orig": "楽園追放 -Expelled from Paradise-",
+    "date": "2014-11-15",
+    "min": 104,
+    "genres": "Animation/Science Fiction/Action/Adventure"
+   }
+  ]
+ },
+ {
+  "id": 60568,
+  "t": "Jiyi Guanli Ju (2026)",
+  "en": "False Memory (2026)",
+  "type": "ONA",
+  "eps": 7,
+  "from": "2026-08-02",
+  "to": "2026-08-30",
+  "was": null,
+  "cands": [
+   {
+    "k": "tv",
+    "id": 280564,
+    "name": "False Memory",
+    "orig": "记忆管理局",
+    "date": "2026-08-02",
+    "eps": 7,
+    "genres": "Animation/Action & Adventure",
+    "seasons": "1:7(2026-08-02)"
+   }
+  ]
+ },
+ {
+  "id": 61642,
+  "t": "Wan Ren Zhi Shang",
+  "en": "Above Myriads",
+  "type": "ONA",
+  "eps": 14,
+  "from": "2026-06-09",
+  "to": "2026-07-21",
+  "was": null,
+  "cands": [
+   {
+    "k": "tv",
+    "id": 325040,
+    "name": "Above Myriads",
+    "orig": "万人之上",
+    "date": "2026-06-09",
+    "eps": 14,
+    "genres": "Animation",
+    "seasons": "1:14(2026-06-09)"
+   }
+  ]
+ },
+ {
+  "id": 62927,
+  "t": "Fangkai Nage Nuwu",
+  "en": "Release that Witch",
+  "type": "ONA",
+  "eps": 8,
+  "from": "2026-03-02",
+  "to": "2026-04-20",
+  "was": null,
+  "cands": [
+   {
+    "k": "tv",
+    "id": 298026,
+    "name": "Release that Witch",
+    "orig": "放开那个女巫",
+    "date": "2026-03-03",
+    "eps": 8,
+    "genres": "Animation/Action & Adventure/Sci-Fi & Fantasy",
+    "seasons": "1:8(2026-03-03)"
+   },
+   {
+    "k": "tv",
+    "id": 261240,
+    "name": "Release That Witch",
+    "orig": "​放开那个女巫·动态漫​",
+    "date": "2023-08-30",
+    "eps": 24,
+    "genres": "Animation/Sci-Fi & Fantasy/Action & Adventure",
+    "seasons": "1:24(2023-08-30)"
+   }
+  ]
+ },
+ {
+  "id": 63987,
+  "t": "Li Xiongmao",
+  "en": "Raised by Demons: Panda Li",
+  "type": "ONA",
+  "eps": 18,
+  "from": "2026-07-29",
+  "to": "2026-11-11",
+  "was": null,
+  "cands": [
+   {
+    "k": "tv",
+    "id": 329026,
+    "name": "Raised by Demons: Panda Li",
+    "orig": "李熊猫",
+    "date": "2026-07-29",
+    "eps": 18,
+    "genres": "Animation/Action & Adventure/Sci-Fi & Fantasy",
+    "seasons": "1:18(2026-07-29) 2:0(?)"
+   },
+   {
+    "k": "tv",
+    "id": 111110,
+    "name": "ONE PIECE",
+    "orig": "ONE PIECE",
+    "date": "2023-08-31",
+    "eps": 17,
+    "genres": "Action & Adventure/Sci-Fi & Fantasy",
+    "seasons": "1:8(2023-08-31) 2:8(2026-03-10) 3:1(?)"
+   },
+   {
+    "k": "tv",
+    "id": 78046,
+    "name": "The Little Mole and Panda",
+    "orig": "熊猫和小鼹鼠",
+    "date": "2016-03-28",
+    "eps": 52,
+    "genres": "Animation/Kids",
+    "seasons": "1:52(2016-03-28)"
+   },
+   {
+    "k": "tv",
+    "id": 103168,
+    "name": "Panda, né pour être libre",
+    "orig": "Panda, né pour être libre",
+    "date": "2015-11-25",
+    "eps": 6,
+    "genres": "Documentary",
+    "seasons": "1:6(2015-11-25)"
+   }
+  ]
+ },
+ {
+  "id": 64979,
+  "t": "Benghuai: Xing Qiong Tiedao - Donghua Duanpian",
+  "en": "Honkai: Star Rail - Animated Shorts",
+  "type": "ONA",
+  "eps": 0,
+  "from": "2023-05-10",
+  "to": null,
+  "was": null,
+  "cands": [
+   {
+    "k": "tv",
+    "id": 251805,
+    "name": "Honkai Star Rail Animation",
+    "orig": "崩坏：星穹铁道 动画短片",
+    "date": "2023-05-10",
+    "eps": 20,
+    "genres": "Animation/Sci-Fi & Fantasy",
+    "seasons": "0:2(2024-04-01) 1:18(2023-05-10)"
+   },
+   {
+    "k": "tv",
+    "id": 89559,
+    "name": "Galaxy Devastator",
+    "orig": "崩坏星河",
+    "date": "2019-05-05",
+    "eps": 12,
+    "genres": "Animation/Sci-Fi & Fantasy/Action & Adventure/Drama/War & Politics",
+    "seasons": "1:12(2019-05-05)"
+   },
+   {
+    "k": "tv",
+    "id": 128963,
+    "name": "Honkai Impact 3rd Animation",
+    "orig": "崩坏3 动画短片集",
+    "date": "2018-04-24",
+    "eps": 14,
+    "genres": "Animation/Action & Adventure/Drama/Sci-Fi & Fantasy",
+    "seasons": "0:6(2021-10-06) 1:14(2018-04-24)"
+   }
+  ]
+ }
+]
