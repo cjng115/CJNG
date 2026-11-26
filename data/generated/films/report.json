@@ -1,0 +1,20 @@
+{
+ "guesses": [],
+ "missing": [],
+ "ask": [],
+ "seriesWithoutCollection": [],
+ "franchiseProblems": [],
+ "counts": {
+  "lines": 0,
+  "films": 0,
+  "tv": 0,
+  "added": 0,
+  "collections": 0,
+  "franchises": 0,
+  "withProviders": 0,
+  "adult": 0,
+  "arabicOverviews": 0,
+  "ourArabic": 0,
+  "noPoster": 0
+ }
+}
