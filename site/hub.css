@@ -1,0 +1,227 @@
+/* الواجهة الرئيسية: ثلاثة أبواب، كل باب بهوية دليله (خطه ولونه ونقشه) حتى تعرف ما وراءه قبل أن تدخل. */
+@font-face{font-family:Marhey;font-weight:300 700;src:url(fonts/marhey-arabic-wght-normal.woff2) format("woff2");font-display:swap;unicode-range:U+0600-06FF,U+0750-077F,U+FB50-FDFF,U+FE70-FEFC,U+200C-200E}
+@font-face{font-family:Marhey;font-weight:300 700;src:url(fonts/marhey-latin-wght-normal.woff2) format("woff2");font-display:swap;unicode-range:U+0000-00FF,U+2010-2027}
+@font-face{font-family:Kufi;font-weight:700;src:url(fonts/reem-kufi-arabic-700-normal.woff2) format("woff2");font-display:swap;unicode-range:U+0600-06FF,U+0750-077F,U+FB50-FDFF,U+FE70-FEFC,U+200C-200E}
+@font-face{font-family:Kufi;font-weight:700;src:url(fonts/reem-kufi-latin-700-normal.woff2) format("woff2");font-display:swap;unicode-range:U+0000-00FF,U+2010-2027}
+@font-face{font-family:Handjet;font-weight:100 900;src:url(fonts/handjet-arabic-full-normal.woff2) format("woff2");font-display:swap;unicode-range:U+0600-06FF,U+0750-077F,U+FB50-FDFF,U+FE70-FEFC,U+200C-200E}
+@font-face{font-family:Handjet;font-weight:100 900;src:url(fonts/handjet-latin-full-normal.woff2) format("woff2");font-display:swap;unicode-range:U+0000-00FF,U+2010-2027}
+@font-face{font-family:Plex;font-weight:400;src:url(fonts/ibm-plex-sans-arabic-arabic-400-normal.woff2) format("woff2");font-display:swap;unicode-range:U+0600-06FF,U+0750-077F,U+FB50-FDFF,U+FE70-FEFC,U+200C-200E}
+@font-face{font-family:Plex;font-weight:600;src:url(fonts/ibm-plex-sans-arabic-arabic-600-normal.woff2) format("woff2");font-display:swap;unicode-range:U+0600-06FF,U+0750-077F,U+FB50-FDFF,U+FE70-FEFC,U+200C-200E}
+@font-face{font-family:Plex;font-weight:400;src:url(fonts/ibm-plex-sans-arabic-latin-400-normal.woff2) format("woff2");font-display:swap;unicode-range:U+0000-00FF,U+2010-2027}
+@font-face{font-family:Plex;font-weight:600;src:url(fonts/ibm-plex-sans-arabic-latin-600-normal.woff2) format("woff2");font-display:swap;unicode-range:U+0000-00FF,U+2010-2027}
+*{box-sizing:border-box;margin:0}
+html{color-scheme:dark;-webkit-text-size-adjust:100%;-webkit-tap-highlight-color:transparent}
+body{min-height:100dvh;display:grid;grid-template-rows:auto 1fr auto;background:#08090d;color:#f1ece2;font-family:Plex,"Segoe UI",Tahoma,sans-serif;line-height:1.6;--pad:max(clamp(14px,3.2vw,40px),env(safe-area-inset-left),env(safe-area-inset-right))}
+/* الترويسة: نقش فوق مداخل البوابات. حروفه مذهّبة معتمة من أعلى ويضيئها من تحت ضوء البوابات: على الكمبيوتر ألوان
+   الثلاث كلٌّ فوق بوابته، وعلى الجوال لون البوابة التي أمامك ويتبدل معها. تحته خط عتبة بمعين في وسطه، ثم سطر يقول ما وراء الأبواب */
+@font-face{font-family:Inscribe;src:url(fonts/rakkas-arabic-400-normal.woff2) format("woff2");font-display:swap;unicode-range:U+0600-06FF,U+0750-077F,U+FB50-FDFF,U+FE70-FEFC,U+200C-200E}
+@property --lit{syntax:"<color>";inherits:true;initial-value:#e6b65c}
+body[data-here=anime]{--lit:#ff8fa3}body[data-here=films]{--lit:#ff9f43}body[data-here=games]{--lit:#35e0ff}
+.hub-top{position:relative;display:grid;justify-items:center;text-align:center;padding:20px var(--pad) 12px}
+.hub-top h1{font-family:Inscribe,Plex,serif;font-weight:400;font-size:clamp(2.9rem,11vw,4.8rem);line-height:1.25;padding-inline:.2em;
+  background-image:linear-gradient(105deg,transparent 42%,rgba(255,248,232,.75) 50%,transparent 58%),linear-gradient(180deg,rgba(6,7,10,.55),rgba(6,7,10,.08) 55%,transparent),linear-gradient(100deg,color-mix(in srgb,var(--lit) 45%,#f7ecd8),var(--lit) 46%,color-mix(in srgb,var(--lit) 70%,#2a1c14));
+  background-size:280% 100%,100% 100%,100% 100%;background-position:120% 0,0 0,0 0;background-repeat:no-repeat;
+  -webkit-background-clip:text;background-clip:text;color:transparent;text-shadow:0 8px 26px color-mix(in srgb,var(--lit) 24%,transparent);transition:--lit .8s ease;
+  animation:lit-sweep 1.6s .35s cubic-bezier(.4,0,.2,1) both}
+/* لحظة واحدة عند الدخول: ضوء يمر على الحروف كأن أنوار القاعة أُضيئت */
+@keyframes lit-sweep{from{background-position:120% 0,0 0,0 0}to{background-position:-20% 0,0 0,0 0}}
+.hub-top .lintel{position:relative;display:block;width:min(260px,62vw);height:11px;margin:2px 0 8px;
+  background:linear-gradient(90deg,transparent,color-mix(in srgb,var(--lit) 40%,transparent) 30%,color-mix(in srgb,var(--lit) 40%,transparent) 44%,transparent 44% 56%,color-mix(in srgb,var(--lit) 40%,transparent) 56%,color-mix(in srgb,var(--lit) 40%,transparent) 70%,transparent) center/100% 1px no-repeat;transition:--lit .8s ease}
+.hub-top .lintel::after{content:"";position:absolute;left:50%;top:50%;width:7px;height:7px;translate:-50% -50%;rotate:45deg;border:1px solid color-mix(in srgb,var(--lit) 60%,transparent)}
+.hub-top p{color:#b4ad9f;font-size:.98rem}
+.hub-top p span{display:inline-block}
+.hub-top .syncb{margin-top:12px;min-height:40px;padding:4px 14px;border:1px solid #2e2c27;border-radius:999px;background:none;color:#a9a294;font:inherit;font-weight:600;font-size:.8rem;cursor:pointer}
+.hub-top .syncb::before{content:"";display:inline-block;width:7px;height:7px;border-radius:50%;background:currentColor;margin-inline-end:8px;opacity:.6}
+.hub-top .syncb[data-sync-state=on]{color:#86d6b6;border-color:#2f5a4b}
+.hub-top .syncb[data-sync-state=err]{color:#ff8f7a;border-color:#6a352c}
+.hub-top .syncb:focus-visible{outline:2px solid #ffc23d;outline-offset:2px}
+@media (min-width:1024px){
+  .hub-top{padding-top:26px}
+  .hub-top h1{background-image:linear-gradient(105deg,transparent 42%,rgba(255,248,232,.75) 50%,transparent 58%),linear-gradient(180deg,rgba(6,7,10,.55),rgba(6,7,10,.08) 55%,transparent),linear-gradient(90deg,#6fe8ff,#ffb066 36%,#f0cf8a 62%,#ff6b5c);text-shadow:0 8px 28px rgba(255,170,100,.18)}
+  .hub-top .hub-acts{position:absolute;top:18px;inset-inline-end:var(--pad);margin:0}
+  .hub-top .hub-acts .syncb{margin:0}
+}
+.hub-foot{padding:12px var(--pad) 18px;font-size:.78rem;color:#8d887d}
+.hub-foot a{color:inherit}
+/* ===== قاعة البوابات =====
+   ثلاث بوابات طويلة، كل واحدة يتسرب منها ضوء عالمها: كشّاف يمسح سماء مدينة ماطرة (دي سي)، سماء غسق تومض نجومها
+   ويتنفس أفقها (أنمياتي)، وشعاع آلة عرض يسبح فيه الغبار (الأفلام). والأرضية مصقولة تعكس البوابات.
+   الإطار واحد للثلاث (الحجم والزوايا والحافة وإطار داخلي على البعد نفسه)، والهوية داخله: الضوء والنقش واللون والخط
+   ونوع خط الإطار الداخلي (فولاذي متصل، ذهبي مزدوج بزوايا حادة، متقطع كتذكرة).
+   على الشاشات العريضة تقف الثلاث في قوس يواجهك، وعلى الأضيق تمشي في القاعة: البوابة في الوسط كبيرة تواجهك وجاراها مائلان.
+   كل ما يتحرك هنا يتحرك بـ transform و opacity فقط: يُرسم مرة واحدة ثم يحرّكه كرت الشاشة، فلا يُعاد رسم البوابة في كل إطار
+   (المطر نقش يتكرر ينزل مسافة تكراره، والجمر والغبار ذرات صغيرة، والدائرة صورة تدور). */
+body{background:radial-gradient(120% 60% at 50% 108%,#121218,transparent 60%),#06070a}
+.doors{--dw:min(80vw,400px);--dh:min(66dvh,640px);position:relative;min-height:0}
+.slot{display:contents}
+.door{position:relative;isolation:isolate;overflow:hidden;display:grid;align-content:end;padding:28px 24px 26px;color:var(--ink);text-decoration:none;background:var(--bg);
+  border:1px solid color-mix(in srgb,var(--c1) 30%,transparent);border-radius:20px;box-shadow:0 34px 70px -38px rgba(0,0,0,.95);
+  transition:translate .45s cubic-bezier(.2,.8,.2,1),scale .2s ease,filter .4s ease,border-color .3s ease}
+.door::before{content:"";position:absolute;inset:8px;pointer-events:none;border:1px solid color-mix(in srgb,var(--c1) 22%,transparent);border-radius:13px}
+.door .art,.door .fx,.door .motif{position:absolute;inset:0;z-index:-1;pointer-events:none}
+.door .art{transition:transform .5s cubic-bezier(.2,.8,.2,1)}
+.door .art img{display:block;width:100%;height:100%;object-fit:cover;object-position:center 22%;opacity:0;transition:opacity .8s ease,transform 7s cubic-bezier(.15,.6,.25,1);transform:scale(1.12)}
+.door .art img.in{opacity:.62}
+/* ضوء العالم ومطره بين الصورة وعتمتها: يخفت نحو الأسفل وعند الحواف وحده، بلا قناع يُعاد حسابه */
+.door .art>i,.door .fx>i,.door .motif>i{position:absolute}
+.door .art>i{z-index:1}
+/* الإضاءة والعتمة فوق الصورة: سقف معتم، وعتمة عند الحواف كأن العالم غائر في عمق البوابة، وقاعدة داكنة للنص */
+.door .art::after{content:"";position:absolute;inset:0;z-index:2;background:radial-gradient(130% 80% at 50% 35%,transparent 45%,color-mix(in srgb,var(--bg) 75%,transparent)),linear-gradient(180deg,color-mix(in srgb,var(--bg) 35%,transparent),color-mix(in srgb,var(--bg) 55%,transparent) 40%,var(--bg) 80%)}
+.door .fx{overflow:hidden}
+.door .txt{display:grid;gap:4px;position:relative}
+.door strong{font-family:var(--display);font-weight:var(--dw,400);font-size:clamp(2.1rem,3.4vw,3.2rem);line-height:var(--lh,1.1);text-shadow:0 2px 24px rgba(0,0,0,.75);transition:translate .45s cubic-bezier(.2,.8,.2,1)}
+.door bdi{color:var(--c1);font-weight:600;font-size:.95rem}
+.door .say{color:#e3dccd;font-size:.95rem;max-width:34ch;margin-top:6px;text-shadow:0 1px 12px rgba(0,0,0,.8)}
+.door .stat{margin-top:12px;font-size:.84rem;font-weight:600;color:var(--c1);min-height:1.6em}
+a.door:focus-visible{outline:3px solid var(--c1);outline-offset:4px}
+
+/* دي سي: الغلاف نفسه، باتمان واقفاً في المطر الأحمر، هو بطل البوابة: ظله الأسود واضح بأذنيه وكتفيه على أحمر حيّ،
+   والسواد يطبق من الحواف والقاعدة فقط. يقترب منك ببطء شديد كأنه يتقدم، وضوء الشعلة الأحمر يرتعش فيه (الصورة نفسها تخفت
+   وتشتد، فيبقى ظله أسود)، ومطر الغلاف ينزل خفيفاً بطبقتين من خيوط عشوائية مائلة بميله وبلون ضوئه، لا ستاراً يغطيه */
+
+/* أنمياتي: سماء الغسق. نجوم تومض في أعلاها، ووهج الأفق يتنفس في أسفلها، وشهاب يعبرها كل حين */
+.door.anime{--bg:#12142e;--c1:#ff8fa3;--c2:#ffc46b;--ink:#f6efe6;--display:Marhey,Plex,sans-serif;--dw:700;--lh:1.3}
+.door.anime::before{border:1px solid color-mix(in srgb,var(--c1) 40%,transparent);border-radius:3px}
+.door.anime .fx::before{content:"";position:absolute;inset:auto 0 0;height:52%;background:radial-gradient(120% 70% at 50% 106%,rgba(255,179,92,.5),rgba(255,127,134,.34) 30%,rgba(179,80,143,.2) 52%,transparent 74%);animation:anime-glow 7s ease-in-out infinite alternate}
+@keyframes anime-glow{from{opacity:.62}to{opacity:1}}
+.door.anime .fx::after{content:"";position:absolute;top:13%;left:64%;width:84px;height:1.5px;border-radius:2px;background:linear-gradient(to left,transparent,#fff);transform:rotate(-24deg);opacity:0;animation:anime-comet 9s 1.5s ease-out infinite}
+@keyframes anime-comet{0%{opacity:0;translate:50px -24px}4%{opacity:.9}14%,100%{opacity:0;translate:-120px 56px}}
+.door.anime .motif>i{width:2px;height:2px;border-radius:50%;background:#fff;opacity:.3;animation:anime-tw 4s ease-in-out infinite}
+.door.anime .motif>i:nth-child(3n){width:3px;height:3px}
+@keyframes anime-tw{0%,100%{opacity:.25}50%{opacity:1}}
+
+/* الأفلام: قاعة عرض مظلمة، شعاع آلة العرض من الأعلى يرتعش قليلاً ويسبح فيه الغبار، وثقوب شريط الفيلم تمر على الطرف */
+.door.films{--bg:#120e09;--c1:#ff9f43;--c2:#ffe2b8;--ink:#fbf3e4;--display:Kufi,Plex,sans-serif;--dw:700;--lh:1.3;padding-inline-end:46px}
+.door.films::before{border-style:dashed;border-color:color-mix(in srgb,var(--c1) 36%,transparent)}
+.door.films .art::before{content:"";position:absolute;z-index:1;inset:-4% -10% 10% -40%;background:conic-gradient(from 198deg at 86% -2%,transparent,rgba(255,220,170,.1) 3deg,rgba(255,220,170,.3) 9deg,rgba(255,210,150,.12) 15deg,transparent 21deg);animation:films-flicker 3.4s steps(1) infinite}
+@keyframes films-flicker{0%,100%{opacity:1}6%{opacity:.82}8%{opacity:1}41%{opacity:.9}43%{opacity:1}72%{opacity:.78}74%{opacity:1}}
+.door.films .fx>i{width:2px;height:2px;border-radius:50%;background:#ffecd0;box-shadow:0 0 4px rgba(255,220,170,.8);animation:mote 10s ease-in-out infinite alternate}
+.door.films .fx>i:nth-child(even){animation-name:mote-b}
+@keyframes mote{from{transform:translate(0,0);opacity:.15}50%{opacity:.85}to{transform:translate(-16px,22px);opacity:.2}}
+@keyframes mote-b{from{transform:translate(0,0);opacity:.7}50%{opacity:.12}to{transform:translate(13px,-15px);opacity:.75}}
+.door.films .motif::before{content:"";position:absolute;left:22px;width:22px;top:-24px;bottom:0;background:radial-gradient(circle,#08090d 0 4.5px,transparent 5px) 0 0/22px 24px repeat-y;animation:reel 2.6s linear infinite}
+@keyframes reel{to{transform:translateY(24px)}}
+
+/* ألعابي: شاشة لعبة ليلية. أرضية من خطوط ضوء تمتد نحو الأفق وتجري نحوك، وبكسلات تصعد وتومض كالعملات، وطبقة هولوغرامية
+   تمر على الصورة كما تمر على بطاقة نادرة، وخطوط الشاشة ثابتة فوقها. الإطار الداخلي منقّط كنقاط الشاشة */
+/* صورتها: لوحة Tekken 8 الرسمية (كازويا وجين في نار الجين الشيطاني) على وسطها، بحضور كامل */
+@keyframes pixel{0%{transform:translateY(0);opacity:0}10%{opacity:1}55%{opacity:.85}100%{transform:translateY(-190px);opacity:0}}
+/* الأرضية: سطح طويل مائل نحو الأفق، منظوره بمقاس البوابة نفسها (cqh) فيبقى الأفق في الموضع ذاته على كل شاشة، ويجري نحوك خلية خلية */
+  background:linear-gradient(rgba(53,224,255,.4) 2px,transparent 2px) 0 0/100% 7cqh,linear-gradient(90deg,rgba(53,224,255,.3) 2px,transparent 2px) 50% 0/7cqh 100%;animation:grid-run 1.8s linear infinite}
+@keyframes grid-run{from{transform:perspective(200cqh) rotateX(60deg) translateY(0)}to{transform:perspective(200cqh) rotateX(60deg) translateY(7cqh)}}
+/* الأفق خط ضوء خافت، والعتمة تبتلع الأرضية خلف النص */
+
+/* ألعابي: شاشة لعبة ليلية. أرضية من خطوط ضوء تمتد نحو الأفق وتجري نحوك، وبكسلات تصعد وتومض كالعملات، وطبقة هولوغرامية
+   تمر على الصورة كما تمر على بطاقة نادرة، وخطوط الشاشة ثابتة فوقها. الإطار الداخلي منقّط كنقاط الشاشة */
+.door.games{--bg:#070818;--c1:#35e0ff;--c2:#a78bff;--ink:#eef3ff;--display:Handjet,Plex,sans-serif;--dw:700;--lh:1.05}
+.door.games::before{border:2px dotted color-mix(in srgb,var(--c1) 42%,transparent)}
+.door.games strong{font-size:clamp(2.7rem,4.3vw,4rem);letter-spacing:.02em;text-shadow:0 0 24px rgba(53,224,255,.5),2px 2px 0 rgba(167,139,255,.55)}
+.door.games .art::before{content:"";position:absolute;inset:0;z-index:1;background:repeating-linear-gradient(0deg,rgba(4,5,16,.32) 0 1px,transparent 1px 3px)}
+.door.games .fx::before{content:"";position:absolute;inset:-10% -70%;background:linear-gradient(105deg,transparent 42%,rgba(110,240,255,.14) 47%,rgba(190,150,255,.16) 50%,rgba(255,226,140,.11) 53%,transparent 58%);animation:games-holo 7.5s ease-in-out infinite}
+@keyframes games-holo{0%,18%{transform:translateX(42%)}62%,100%{transform:translateX(-42%)}}
+.door.games .fx>i{width:3px;height:3px;background:#9cefff;box-shadow:0 0 6px rgba(53,224,255,.9);opacity:0;animation:pixel 7s steps(14) infinite}
+.door.games .fx>i:nth-child(3n){background:#ffd36b;box-shadow:0 0 6px rgba(255,201,77,.9)}
+.door.games .fx>i:nth-child(3n+1){background:#c3b0ff;box-shadow:0 0 6px rgba(167,139,255,.9)}
+@keyframes pixel{0%{transform:translateY(0);opacity:0}10%{opacity:1}55%{opacity:.85}100%{transform:translateY(-190px);opacity:0}}
+.door.games .motif{overflow:hidden;container-type:size}
+/* الأرضية: سطح طويل مائل نحو الأفق، منظوره بمقاس البوابة نفسها (cqh) فيبقى الأفق في الموضع ذاته على كل شاشة، ويجري نحوك خلية خلية */
+.door.games .motif>i{left:-70%;right:-70%;bottom:-2cqh;height:150cqh;transform-origin:50% 100%;transform:perspective(200cqh) rotateX(60deg);
+  background:linear-gradient(rgba(53,224,255,.4) 2px,transparent 2px) 0 0/100% 7cqh,linear-gradient(90deg,rgba(53,224,255,.3) 2px,transparent 2px) 50% 0/7cqh 100%;animation:grid-run 1.8s linear infinite}
+/* الأفق خط ضوء خافت، والعتمة تبتلع الأرضية خلف النص */
+.door.games .motif::before{content:"";position:absolute;z-index:1;left:0;right:0;top:calc(53% - 40px);height:80px;background:radial-gradient(60% 50% at 50% 50%,rgba(53,224,255,.28),transparent 70%)}
+.door.games .motif::after{content:"";position:absolute;inset:0;z-index:1;background:linear-gradient(180deg,var(--bg) 0,transparent 1px,transparent 60%,rgba(7,8,24,.7) 74%,var(--bg) 90%)}
+
+/* ----- الشاشات العريضة: البوابتان متقابلتان تواجهانك، وأسطرهما مصطفة (الشبكة الفرعية)، والأرضية تعكسهما ----- */
+@media (min-width:1024px){
+  .doors{display:grid;grid-template-columns:repeat(3,minmax(0,400px));justify-content:center;grid-template-rows:minmax(0,1fr) repeat(4,auto);column-gap:clamp(18px,2.2vw,40px);row-gap:4px;
+    height:clamp(520px,calc(100dvh - 290px),860px);margin:4px var(--pad) 120px;perspective:2200px}
+  .door{grid-row:1/-1;grid-template-rows:subgrid;align-content:normal;-webkit-box-reflect:below 12px linear-gradient(transparent 70%,rgba(255,255,255,.2));
+    transition:transform .55s cubic-bezier(.2,.8,.2,1),translate .45s cubic-bezier(.2,.8,.2,1),scale .2s ease,filter .4s ease,border-color .3s ease}
+  .door .txt{display:contents}
+  .door strong{grid-row:2;align-self:end}
+  .door bdi{grid-row:3}
+  .door .say{grid-row:4;align-self:start}
+  .door .stat{grid-row:5}
+  .door.anime{transform:rotateY(-9deg)}
+  .door.games{transform:rotateY(9deg)}
+  /* على الشاشات العريضة (ومنها الأوليد) بُنيت البوابة من جديد: غلاف طولي للفيلم بلا كتابة، باتمان واقفاً بدرعه كاملاً في العتمة
+     وخلفه هالة حمراء، فالسواد الحقيقي يملأ أكثر البوابة والأحمر ضوء خلفه لا مساحة فاقعة. بدقته الأصلية (1000×1426، فلا تكبير)
+     وبلا مرشحات (الصورة مدرّجة أصلاً)، والعتمة خفيفة من الحواف والقاعدة للنص. الجوال باقٍ على غلافه الأحمر كما هو */
+  /* حبيبات دقيقة ثابتة كحبيبات الفيلم: تكسر تدرج الهالة الحمراء إلى السواد فلا يظهر بدرجات متكسرة على الأوليد، ومزجها «تراكب»
+     فلا ترفع السواد ولا تغيّر اللون. صورة واحدة تُرسم مرة، بلا حركة */
+    background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 0 0 0 0 1'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E") 0 0/180px 180px}
+  /* والثلاث الباقية على طريقة دي سي نفسها: غلاف طولي بلا كتابة بدقته الأصلية، بحضوره كاملاً (بلا تعتيم ولا مرشحات)، والعتمة من
+     الحواف والقاعدة للنص فقط، وحبيبات الفيلم نفسها. تُطبَّق حين يحمل الغلاف فعلاً (data-poster)، وإن تعذّر بقيت البوابة على صورتها السابقة.
+     أنمياتي: غلاف يختاره بناء البيانات (بوستر بلا كتابة لعمل البوابة المسمّى في data-art، وإلا بوستره العادي)، ووهج الأفق من تحته والنجوم فوقه.
+     الأفلام: وجه K يرفع عينيه في المطر (Blade Runner 2049)، وشعاع آلة العرض يعبره.
+     ألعابي: كازويا وجين في نار الجين الشيطاني، لوحة Tekken 8 الرسمية بدقة 4K، كاملة بارتفاع البوابة إلا قاعدتها، وأرضية الحلبة تحتهما */
+  .door[data-poster]:is(.anime,.films) .art img{filter:none}
+  .door[data-poster]:is(.anime,.films) .art img.in{opacity:1}
+  .door[data-poster].anime .art img{object-position:center 26%;transform-origin:50% 20%}
+  .door[data-poster].films .art img{object-position:center 30%;transform-origin:50% 15%}
+  .door[data-poster]:is(.anime,.films) .art::after{background:radial-gradient(100% 75% at 50% 32%,transparent 55%,color-mix(in srgb,var(--bg) 75%,transparent)),
+    linear-gradient(180deg,color-mix(in srgb,var(--bg) 10%,transparent),transparent 12%,transparent 52%,color-mix(in srgb,var(--bg) 55%,transparent) 66%,var(--bg) 86%)}
+  .door[data-poster]:is(.anime,.films)::after{content:"";position:absolute;inset:0;z-index:-1;pointer-events:none;border-radius:inherit;opacity:.2;mix-blend-mode:overlay;
+    background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 0 0 0 0 1'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E") 0 0/180px 180px}
+  .hall-nav{display:none}
+}
+@media (min-width:1024px) and (hover:hover){
+  a.door:hover{transform:none;translate:0 -8px;border-color:var(--c1)}
+  .doors:has(a.door:hover) a.door:not(:hover){filter:brightness(.62) saturate(.8)}
+  a.door:hover .art{transform:translate(calc(var(--mx,0) * -18px),calc(var(--my,0) * -14px))}
+  a.door:hover .art img.in{transform:scale(1.2);opacity:.78}
+  a.door[data-poster]:hover .art img.in{opacity:1}
+  a.door:hover strong{translate:0 -6px}
+}
+@media (hover:hover){a.door:active{scale:.985;transition-duration:.12s}}
+/* ----- الأضيق (ومنها الفولد والجوال): القاعة تُمرَّر أفقياً، والبوابة في الوسط تواجهك وجاراها مائلان ومعتمان ----- */
+@media (max-width:1023.98px){
+  /* التمرير باتجاه اليسار-لليمين والترتيب معكوس (دي سي يميناً كما في القراءة العربية): خط زمن التمرير يُحسب صحيحاً هكذا */
+  .doors{direction:ltr;display:flex;align-items:flex-start;overflow-x:auto;overflow-y:hidden;overscroll-behavior-x:contain;scroll-snap-type:x mandatory;scrollbar-width:none;
+    padding:6px calc(50% - var(--dw) / 2) 112px;margin-bottom:-58px}
+  .slot:nth-child(1){order:3}.slot:nth-child(2){order:2}.slot:nth-child(3){order:1}
+  .doors::-webkit-scrollbar{display:none}
+  .slot{direction:rtl;display:block;position:relative;flex:0 0 var(--dw);scroll-snap-align:center;perspective:1000px;view-timeline:--slot inline}
+  .door{height:var(--dh)}
+  /* صورة البوابة التي في الوسط في طبقة مستقلة: ميلان الجوال يزيحها دون إعادة رسم. والجاران لا طبقات داخلهما: كل منهما لوحة
+     واحدة تُرسم مرة، فلا يحتاج كرت الشاشة أثناء السحب إلى رسم كل بوابة مائلة في صفحة جانبية ثم قصّها بزواياها */
+  .door[data-here] .art{will-change:transform}
+  /* الأرضية المصقولة: ضوء كل عالم ينسكب تحت بوابته (أخف على الجوال من عكس البوابة كاملة وهي تدور) */
+  .slot::after{content:"";position:absolute;inset-inline:-6%;top:calc(100% + 6px);height:clamp(70px,14dvh,120px);pointer-events:none;
+    background:radial-gradient(48% 100% at 50% 0,color-mix(in srgb,var(--glow) 24%,transparent),color-mix(in srgb,var(--glow) 6%,transparent) 45%,transparent 72%)}
+  .s-anime{--glow:#ff8fa3}.s-films{--glow:#ff9f43}.s-games{--glow:#35e0ff}
+  /* عتمة الجارين طبقة شقيقة للبوابة تميل معها بالحركة نفسها (لا ابنة تحت قصّها)، وشفافة إن لم تتحرك القاعة (تقليل الحركة) */
+  @supports (animation-timeline:--slot){.door{animation:hall linear both;animation-timeline:--slot}.slot::after{animation:hall-floor linear both;animation-timeline:--slot}
+    .slot::before{content:"";position:absolute;z-index:1;inset:0 0 auto;height:var(--dh);border-radius:20px;background:#050508;opacity:0;pointer-events:none;
+      animation:hall linear both,hall-dim linear both;animation-timeline:--slot,--slot}}
+  /* الجاران ساكنان: زينة عالمهما ثابتة على أول مشهد من حركتها ومرسومة معهما، وحركتها تبدأ حين يصلان الوسط ويستقران */
+  .door:not([data-here]) :is(.art,.fx,.motif)::before,.door:not([data-here]) .fx::after,.door:not([data-here]) :is(.art,.fx,.motif) :is(i,b,img){animation:none!important}
+  .door.anime .fx::before{opacity:.62}
+  .door.films .fx>i{opacity:.45}
+  /* أرضية ألعابي على الجار: الأرضية نفسها مرسومة سلفاً كما يُسقطها منظورها عند أول حركتها (صورة مسطحة تُرسم مرة مع البوابة)،
+     والأرضية الحية بمنظورها ثلاثي الأبعاد للبوابة التي في الوسط وحدها */
+  .door.games:not([data-here]) .motif{background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='-1500 0 3000 1000' preserveAspectRatio='xMidYMin meet'%3E%3Cpath fill='%2335e0ff' fill-opacity='.3' d='M-1575 1020L-1571.3 1020L-952.6 565.3L-954.8 565.3ZM-1505 1020L-1501.3 1020L-910.1 565.3L-912.4 565.3ZM-1435 1020L-1431.3 1020L-867.7 565.3L-870 565.3ZM-1365 1020L-1361.3 1020L-825.3 565.3L-827.5 565.3ZM-1295 1020L-1291.3 1020L-782.8 565.3L-785.1 565.3ZM-1225 1020L-1221.3 1020L-740.4 565.3L-742.6 565.3ZM-1155 1020L-1151.3 1020L-698 565.3L-700.2 565.3ZM-1085 1020L-1081.3 1020L-655.5 565.3L-657.8 565.3ZM-1015 1020L-1011.3 1020L-613.1 565.3L-615.3 565.3ZM-945 1020L-941.3 1020L-570.7 565.3L-572.9 565.3ZM-875 1020L-871.3 1020L-528.2 565.3L-530.5 565.3ZM-805 1020L-801.3 1020L-485.8 565.3L-488 565.3ZM-735 1020L-731.3 1020L-443.3 565.3L-445.6 565.3ZM-665 1020L-661.3 1020L-400.9 565.3L-403.1 565.3ZM-595 1020L-591.3 1020L-358.5 565.3L-360.7 565.3ZM-525 1020L-521.3 1020L-316 565.3L-318.3 565.3ZM-455 1020L-451.3 1020L-273.6 565.3L-275.8 565.3ZM-385 1020L-381.3 1020L-231.2 565.3L-233.4 565.3ZM-315 1020L-311.3 1020L-188.7 565.3L-191 565.3ZM-245 1020L-241.3 1020L-146.3 565.3L-148.5 565.3ZM-175 1020L-171.3 1020L-103.8 565.3L-106.1 565.3ZM-105 1020L-101.3 1020L-61.4 565.3L-63.7 565.3ZM-35 1020L-31.3 1020L-19 565.3L-21.2 565.3ZM35 1020L38.7 1020L23.5 565.3L21.2 565.3ZM105 1020L108.7 1020L65.9 565.3L63.7 565.3ZM175 1020L178.7 1020L108.3 565.3L106.1 565.3ZM245 1020L248.7 1020L150.8 565.3L148.5 565.3ZM315 1020L318.7 1020L193.2 565.3L191 565.3ZM385 1020L388.7 1020L235.6 565.3L233.4 565.3ZM455 1020L458.7 1020L278.1 565.3L275.8 565.3ZM525 1020L528.7 1020L320.5 565.3L318.3 565.3ZM595 1020L598.7 1020L363 565.3L360.7 565.3ZM665 1020L668.7 1020L405.4 565.3L403.1 565.3ZM735 1020L738.7 1020L447.8 565.3L445.6 565.3ZM805 1020L808.7 1020L490.3 565.3L488 565.3ZM875 1020L878.7 1020L532.7 565.3L530.5 565.3ZM945 1020L948.7 1020L575.1 565.3L572.9 565.3ZM1015 1020L1018.7 1020L617.6 565.3L615.3 565.3ZM1085 1020L1088.7 1020L660 565.3L657.8 565.3ZM1155 1020L1158.7 1020L702.4 565.3L700.2 565.3ZM1225 1020L1228.7 1020L744.9 565.3L742.6 565.3ZM1295 1020L1298.7 1020L787.3 565.3L785.1 565.3ZM1365 1020L1368.7 1020L829.8 565.3L827.5 565.3ZM1435 1020L1438.7 1020L872.2 565.3L870 565.3ZM1505 1020L1508.7 1020L914.6 565.3L912.4 565.3Z'/%3E%3Cpath fill='%2335e0ff' fill-opacity='.4' d='M-1500 565.3H1500V566H-1500ZM-1500 578.4H1500V579.1H-1500ZM-1500 592H1500V592.8H-1500ZM-1500 606.2H1500V606.9H-1500ZM-1500 620.9H1500V621.7H-1500ZM-1500 636.1H1500V637H-1500ZM-1500 652.1H1500V652.9H-1500ZM-1500 668.7H1500V669.6H-1500ZM-1500 686H1500V686.9H-1500ZM-1500 704H1500V705H-1500ZM-1500 722.9H1500V723.9H-1500ZM-1500 742.7H1500V743.7H-1500ZM-1500 763.3H1500V764.5H-1500ZM-1500 785H1500V786.2H-1500ZM-1500 807.8H1500V809H-1500ZM-1500 831.7H1500V833H-1500ZM-1500 856.8H1500V858.2H-1500ZM-1500 883.3H1500V884.8H-1500ZM-1500 911.3H1500V912.8H-1500ZM-1500 940.8H1500V942.4H-1500ZM-1500 972.1H1500V973.8H-1500Z'/%3E%3C/svg%3E") 50% 0/auto 100% no-repeat}
+  .door.games:not([data-here]) .motif>i{visibility:hidden}
+  /* دي سي: الصورة ثابتة بمرشحها (يُطبَّق مرة عند الرسم)، واقترابها البطيء يحرّك طبقتها كلها، ورعشة ضوء الشعلة عتمة رقيقة فوقها */
+  .hall-nav{position:relative;z-index:2;display:flex;justify-content:center;gap:8px;padding:0 var(--pad) 6px}
+  .hall-nav button{min-height:40px;min-width:64px;padding:4px 14px;border-radius:999px;border:1px solid #2c2b28;background:rgba(14,14,18,.72);color:#a9a498;font:inherit;font-size:.84rem;font-weight:600;cursor:pointer;transition:color .3s ease,border-color .3s ease,background-color .3s ease}
+  .hall-nav button[aria-current=true]{color:#f6f1e6;border-color:rgba(246,241,230,.55);background:rgba(246,241,230,.08)}
+  .hall-nav button:focus-visible{outline:2px solid #f6f1e6;outline-offset:2px}
+}
+@keyframes hall{0%{transform:translateX(-28%) rotateY(-46deg) scale(.8)}50%{transform:none}100%{transform:translateX(28%) rotateY(46deg) scale(.8)}}
+/* الجاران يعتمان بطبقة فوقهما لا بمرشّح، وضوؤهما على الأرض يبتعد ويخفت معهما */
+@keyframes hall-dim{0%,100%{opacity:.55}50%{opacity:0}}
+@keyframes hall-floor{0%{transform:translateX(-26%) scale(.72);opacity:.3}50%{transform:none;opacity:1}100%{transform:translateX(26%) scale(.72);opacity:.3}}
+/* رعشة الشعلة على الجوال: عتمة تخفّ وتشتد فوق الصورة (مثل خفوت الصورة نفسها على سوادها) */
+@media (max-width:600px){.doors{--dw:min(82vw,340px);--dh:min(64dvh,600px)}.door{padding:24px 20px 22px}.door.films{padding-inline-end:42px}.door strong{font-size:2rem}}
+@media (max-height:560px) and (max-width:1023.98px){.doors{--dh:76dvh}}
+/* الدخول: الباب يتمدد حتى يملأ الشاشة بلون عالمه واسمه، والصفحة التالية تبدأ بنفس المشهد ثم تكشف نفسها */
+.curtain{position:fixed;inset:0;z-index:90;background:var(--bg);transform-origin:0 0;will-change:transform}
+.curtain-title{position:fixed;inset:0;z-index:91;display:grid;place-items:center;pointer-events:none;padding:0 6vw;text-align:center;font-family:var(--display);font-weight:var(--dw,400);font-size:clamp(2.2rem,7vw,4.6rem);line-height:1.3;color:var(--ink);opacity:0}
+.leaving .door{transition:opacity .3s ease;opacity:.25}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+
+.hub-acts{display:flex;flex-wrap:wrap;justify-content:center;gap:8px}
+
+/* التوقيع */
+.sig{margin:14px 0 0;font-size:.78rem;letter-spacing:.02em;opacity:.62;text-align:center}.sig q{quotes:"\201C" "\201D";font-weight:600}
