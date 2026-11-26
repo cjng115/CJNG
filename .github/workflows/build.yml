@@ -1,0 +1,98 @@
+# نسخة من .github/workflows/build.yml لمن رفع الملفات من المتصفح: أنشئ في المستودع ملفاً بالمسار .github/workflows/build.yml والصق فيه هذا الملف كله.
+name: build-and-deploy
+# يبني بيانات البوابات الثلاث من القوائم (data/anime/list.json وdata/films/ وdata/games/added.json) ثم ينشر الموقع على GitHub Pages.
+# يعمل مع كل إيداع في القوائم أو الكود (الإضافة والاستيراد من الموقع تودِع في المستودع فيعمل)، ومرة كل يوم للحلقات والمواعيد وأماكن العرض.
+# المفاتيح أسرار في المستودع (Settings ← Secrets and variables ← Actions) يضعها صاحبه بنفسه:
+#   TMDB_API_KEY  (لازم للأفلام، وللبوسترات وأماكن العرض والحلقات في الأنمي)     MAL_CLIENT_ID  (مستحسن: الواجهة الرسمية لـMyAnimeList وتقييماتها؛ وبدونه Jikan ثم AniList)
+#   IGDB_CLIENT_ID وIGDB_CLIENT_SECRET  (لازمان للألعاب: تطبيق في لوحة مطوري Twitch، نوعه Confidential)
+on:
+  push:
+    branches: [main]
+    paths: ['data/**', '!data/generated/**', 'scripts/**', 'site/**', '!site/*/data/**', '.github/workflows/build.yml']
+  schedule:
+    - cron: '23 2 * * *'   # يومياً 05:23 بتوقيت الرياض
+  workflow_dispatch:
+    inputs:
+      anime_max:
+        description: 'كم عملاً يُسحب من MyAnimeList في هذا التشغيل (الافتراضي 1500)'
+        required: false
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+concurrency:
+  group: build
+  cancel-in-progress: true
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Build the anime catalog (MyAnimeList, then Jikan, then AniList; TMDB for posters and where to watch)
+        env:
+          TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
+          MAL_CLIENT_ID: ${{ secrets.MAL_CLIENT_ID }}
+          ANIME_MAL_MAX: ${{ inputs.anime_max }}
+        run: node scripts/build-anime.mjs
+        continue-on-error: true
+      - name: Build the anime episodes (TMDB seasons)
+        env:
+          TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
+        run: node scripts/build-anime-episodes.mjs
+        continue-on-error: true
+      - name: Build the films list (TMDB)
+        env:
+          TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
+        run: node scripts/build-films.mjs
+        continue-on-error: true
+      - name: Build the title index for suggestions in «أضف فيلماً» (weekly)
+        env:
+          TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
+        run: node scripts/build-titles.mjs
+        continue-on-error: true
+      - name: Build the games library (IGDB, Wikidata, PC stores and subscriptions)
+        env:
+          IGDB_CLIENT_ID: ${{ secrets.IGDB_CLIENT_ID }}
+          IGDB_CLIENT_SECRET: ${{ secrets.IGDB_CLIENT_SECRET }}
+        run: node scripts/build-games.mjs
+        continue-on-error: true
+      - name: Build the game title index for «أضف لعبة» (weekly)
+        env:
+          IGDB_CLIENT_ID: ${{ secrets.IGDB_CLIENT_ID }}
+          IGDB_CLIENT_SECRET: ${{ secrets.IGDB_CLIENT_SECRET }}
+        run: node scripts/build-game-titles.mjs
+        continue-on-error: true
+      - name: Build the worlds map for the films (Wikidata + TMDB)
+        env:
+          TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
+        run: node scripts/build-worlds.mjs
+        continue-on-error: true
+      - name: Commit generated data
+        run: |
+          git config user.name "portals-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          printf '{"repo":"%s"}\n' "$GITHUB_REPOSITORY" > site/build.json   # تقرؤه الصفحة لتعرف مستودعها (الإضافة والاستيراد)
+          git add data/generated site/films/data site/anime/data site/games/data site/build.json
+          git diff --cached --quiet || git commit -m "data: refresh"
+          git pull --rebase origin main
+          git push origin HEAD:main
+      - name: Stamp build id (cache busting; not committed)
+        run: sed -i "s/__BUILD__/${GITHUB_RUN_ID}/g" site/index.html site/*/index.html site/*.js
+      - name: Upload site
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    # قبل تفعيل GitHub Pages في المستودع (Settings ← Pages ← Source: GitHub Actions) لا يُنشر، ولا يُعدّ البناء فاشلاً
+    continue-on-error: true
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
