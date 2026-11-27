@@ -310,6 +310,32 @@
   ]
  },
  {
+  "id": 21073,
+  "t": "Puchimas!!: Petit Petit iDOLM@STER",
+  "en": "PUCHIM@S 2",
+  "type": "ONA",
+  "eps": 74,
+  "from": "2014-04-01",
+  "to": "2014-06-30",
+  "was": {
+   "k": "tv",
+   "id": 53138,
+   "s": 2
+  },
+  "cands": [
+   {
+    "k": "tv",
+    "id": 124054,
+    "name": "Puchimas!: Petit Idolm@ster",
+    "orig": "ぷちます!!-プチプチ・アイドルマスター-",
+    "date": "2013-01-01",
+    "eps": 74,
+    "genres": "Animation",
+    "seasons": "1:64(2013-01-01) 2:74(2014-04-01)"
+   }
+  ]
+ },
+ {
   "id": 33050,
   "t": "Fate/stay night Movie: Heaven's Feel - III. Spring Song",
   "en": "Fate/stay night: Heaven's Feel - III. Spring Song",
@@ -553,6 +579,62 @@
     "eps": 10,
     "genres": "Animation/Action & Adventure/Sci-Fi & Fantasy",
     "seasons": "0:2(2026-07-04) 1:10(2026-07-07)"
+   }
+  ]
+ },
+ {
+  "id": 41750,
+  "t": "Koukaku Kidoutai: SAC_2045 Season 2",
+  "en": "Ghost in the Shell: SAC_2045 Season 2",
+  "type": "ONA",
+  "eps": 12,
+  "from": "2022-05-23",
+  "to": "2022-05-23",
+  "was": {
+   "k": "tv",
+   "id": 1095,
+   "s": 4
+  },
+  "cands": [
+   {
+    "k": "tv",
+    "id": 90293,
+    "name": "Ghost in the Shell: SAC_2045",
+    "orig": "攻殻機動隊 SAC_2045",
+    "date": "2020-04-23",
+    "eps": 24,
+    "genres": "Animation/Drama/Action & Adventure/Sci-Fi & Fantasy",
+    "seasons": "1:12(2020-04-23) 2:12(2022-05-23)"
+   },
+   {
+    "k": "tv",
+    "id": 255358,
+    "name": "THE GHOST IN THE SHELL",
+    "orig": "攻殻機動隊 THE GHOST IN THE SHELL",
+    "date": "2026-07-07",
+    "eps": 10,
+    "genres": "Animation/Action & Adventure/Sci-Fi & Fantasy",
+    "seasons": "0:2(2026-07-04) 1:10(2026-07-07)"
+   },
+   {
+    "k": "tv",
+    "id": 62070,
+    "name": "Ghost in the Shell: Arise - Alternative Architecture",
+    "orig": "攻殻機動隊 ARISE ALTERNATIVE ARCHITECTURE",
+    "date": "2015-04-05",
+    "eps": 10,
+    "genres": "Animation/Crime/Action & Adventure/Sci-Fi & Fantasy",
+    "seasons": "0:5(2013-07-26) 1:10(2015-04-05)"
+   },
+   {
+    "k": "tv",
+    "id": 1095,
+    "name": "Ghost in the Shell: Stand Alone Complex",
+    "orig": "攻殻機動隊 STAND ALONE COMPLEX",
+    "date": "2002-10-01",
+    "eps": 52,
+    "genres": "Animation/Action & Adventure/Sci-Fi & Fantasy/Crime",
+    "seasons": "0:53(2002-12-20) 1:26(2002-10-01) 2:26(2004-01-01)"
    }
   ]
  },
