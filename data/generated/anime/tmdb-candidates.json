@@ -1,5 +1,31 @@
 [
  {
+  "id": 2163,
+  "t": "AIKa R-16: Virgin Mission",
+  "en": null,
+  "type": "OVA",
+  "eps": 3,
+  "from": "2007-04-25",
+  "to": "2007-10-26",
+  "was": {
+   "k": "tv",
+   "id": 43249,
+   "s": 2
+  },
+  "cands": [
+   {
+    "k": "tv",
+    "id": 68417,
+    "name": "AIKa R-16 Virgin Mission",
+    "orig": "AIKa R-16:VIRGIN MISSION",
+    "date": "2007-04-25",
+    "eps": 3,
+    "genres": "Animation",
+    "seasons": "1:3(2007-04-25)"
+   }
+  ]
+ },
+ {
   "id": 2526,
   "t": "Kirara",
   "en": null,
@@ -214,6 +240,32 @@
     "date": "2011-11-16",
     "min": 136,
     "genres": "Drama/Action/History"
+   }
+  ]
+ },
+ {
+  "id": 15649,
+  "t": "Puchimas!: Petit iDOLM@STER",
+  "en": "PUCHIM@S",
+  "type": "ONA",
+  "eps": 64,
+  "from": "2013-01-01",
+  "to": "2013-03-29",
+  "was": {
+   "k": "tv",
+   "id": 53138,
+   "s": 1
+  },
+  "cands": [
+   {
+    "k": "tv",
+    "id": 124054,
+    "name": "Puchimas!: Petit Idolm@ster",
+    "orig": "ぷちます!!-プチプチ・アイドルマスター-",
+    "date": "2013-01-01",
+    "eps": 74,
+    "genres": "Animation",
+    "seasons": "1:64(2013-01-01) 2:74(2014-04-01)"
    }
   ]
  },
@@ -447,6 +499,62 @@
   "to": "2018-11-07",
   "was": null,
   "cands": []
+ },
+ {
+  "id": 38799,
+  "t": "Koukaku Kidoutai: SAC_2045",
+  "en": "Ghost in the Shell: SAC_2045",
+  "type": "ONA",
+  "eps": 12,
+  "from": "2020-04-23",
+  "to": "2020-04-23",
+  "was": {
+   "k": "tv",
+   "id": 1095,
+   "s": 3
+  },
+  "cands": [
+   {
+    "k": "tv",
+    "id": 90293,
+    "name": "Ghost in the Shell: SAC_2045",
+    "orig": "攻殻機動隊 SAC_2045",
+    "date": "2020-04-23",
+    "eps": 24,
+    "genres": "Animation/Drama/Action & Adventure/Sci-Fi & Fantasy",
+    "seasons": "1:12(2020-04-23) 2:12(2022-05-23)"
+   },
+   {
+    "k": "tv",
+    "id": 72838,
+    "name": "Pandora in the Crimson Shell: Ghost Urn",
+    "orig": "紅殻のパンドラ",
+    "date": "2016-01-08",
+    "eps": 12,
+    "genres": "Animation/Comedy/Sci-Fi & Fantasy/Action & Adventure",
+    "seasons": "1:12(2016-01-08)"
+   },
+   {
+    "k": "tv",
+    "id": 62070,
+    "name": "Ghost in the Shell: Arise - Alternative Architecture",
+    "orig": "攻殻機動隊 ARISE ALTERNATIVE ARCHITECTURE",
+    "date": "2015-04-05",
+    "eps": 10,
+    "genres": "Animation/Crime/Action & Adventure/Sci-Fi & Fantasy",
+    "seasons": "0:5(2013-07-26) 1:10(2015-04-05)"
+   },
+   {
+    "k": "tv",
+    "id": 255358,
+    "name": "THE GHOST IN THE SHELL",
+    "orig": "攻殻機動隊 THE GHOST IN THE SHELL",
+    "date": "2026-07-07",
+    "eps": 10,
+    "genres": "Animation/Action & Adventure/Sci-Fi & Fantasy",
+    "seasons": "0:2(2026-07-04) 1:10(2026-07-07)"
+   }
+  ]
  },
  {
   "id": 55629,
