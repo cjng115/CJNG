@@ -1,6 +1,7 @@
 // الواجهة الرئيسية (قاعة البوابات): تجلب صورة كل دليل وعدد أعماله، وتقرأ سجل المشاهدة المحفوظ في المتصفح لتعرض التقدم.
 import { initSync } from './sync.js?v=__BUILD__';
 import './keys.js?v=__BUILD__';   // «مفاتيح الموقع»: نافذتها تُفتح من زرها في الرأس
+import { siteConfig } from './site-config.js?v=__BUILD__';   // صور البوابات التي اختارها صاحب الموقع (data/site.json: doors)
 const BUILD = '__BUILD__';
 const calm = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const works = (n) => { const m = n % 100; return n === 1 ? 'عمل واحد' : n === 2 ? 'عملين' : `${n} ${n === 0 || (m >= 3 && m <= 10) ? 'أعمال' : m >= 11 ? 'عملاً' : 'عمل'}`; };
@@ -84,6 +85,11 @@ addEventListener('pageshow', () => { document.querySelectorAll('.curtain,.curtai
 
 // ---------- البيانات: المزامنة تبدأ قبل تحميل الصور، وكل تغيير يصل من جهاز آخر يحدّث عدّاد بابه
 initSync(id => { const door = document.querySelector(`.door[data-guide="${id}"]`); if (door) stat(door); });
+// صور البوابات من data/site.json (doors): لكل بوابة tall (غلافها الطولي على الشاشات العريضة) وwide (صورتها على الأضيق)، وكل منهما
+// ملف في الموقع نفسه (مثل art/anime-tall.webp تحت site/)، أو مسار في TMDB يبدأ بـ / (بدقته الأصلية)، أو رابط https كامل. وما لم يُكتب يُؤخذ من الأعمال
+const DOORS = Promise.race([siteConfig().then(c => c.doors || {}), new Promise(r => setTimeout(() => r({}), 2500))]).catch(() => ({}));
+const doorArt = (v, cat) => typeof v !== 'string' || !(v = v.trim()) ? null : /^https:\/\//.test(v) ? v : v[0] === '/' ? (cat.imageBase || 'https://image.tmdb.org/t/p/') + 'original' + v
+  : /^[\w./-]+$/.test(v) && !v.includes('..') ? new URL(v.replace(/^\.\//, ''), document.baseURI).href : null;
 await Promise.all([...document.querySelectorAll('.door[data-key]')].map(async door => {
   try {
     // الصورة: على الشاشات العريضة لكل بوابة غلاف طولي بلا كتابة خاص بها (data-art-desk: مسار في TMDB بدقته الأصلية، أو بمقاس مسمّى
@@ -96,7 +102,9 @@ await Promise.all([...document.querySelectorAll('.door[data-key]')].map(async do
     let usual = null;
     door.x18 = new Set((cat.games || cat.anime || cat.films || []).filter(w => w.adult || w.ad).map(w => String(w.id)));
     if (cat.games) {
-      if (door.dataset.artIgdb) usual = `${cat.img || 'https://images.igdb.com/igdb/image/upload/'}t_${big ? '1080p' : '720p'}/${door.dataset.artIgdb}.jpg`;
+      // ألعابي: لوحة اللعبة المسمّاة في data-art-igdb، وإلا لوحة أول لعبة لها لوحة في مكتبتك
+      const ga = door.dataset.artIgdb || cat.games.find(g => !g.adult && g.art)?.art;
+      if (ga) usual = `${cat.img || 'https://images.igdb.com/igdb/image/upload/'}t_${big ? '1080p' : '720p'}/${ga}.jpg`;
       if (cat.games.length - door.x18.size > 0) door.dataset.total = games(cat.games.length - door.x18.size); else door.querySelector('[data-stat]').textContent = 'مكتبتك تنتظر أول لعبة';
     } else if (cat.anime) {
       // أنمياتي: غلاف البوابة يختاره البناء (cat.door: بوستر بلا كتابة وخلفية للعمل المسمّى في data-art)، وإلا فبوستر العمل وخلفيته
@@ -109,6 +117,8 @@ await Promise.all([...document.querySelectorAll('.door[data-key]')].map(async do
       if (art?.backdrop) usual = cat.imageBase + tmdbSize + art.backdrop;
       if (items.length) door.dataset.total = cat.works ? works(items.length) : films(items.length); else door.querySelector('[data-stat]').textContent = 'قائمتك تنتظر أول فيلم';
     }
+    const mine = (await DOORS)[door.dataset.guide] || {}, tall = doorArt(mine.tall, cat), wide = doorArt(mine.wide, cat);
+    if (tall && !narrow.matches) desk = tall; if (wide) usual = wide;
     if (desk || usual) {
       const img = new Image(); let poster = !!desk; img.decoding = 'async'; img.alt = '';
       img.onload = () => { if (poster) door.dataset.poster = ''; img.classList.add('in'); };

@@ -104,7 +104,7 @@ a.door:focus-visible{outline:3px solid var(--c1);outline-offset:4px}
 
 /* ألعابي: شاشة لعبة ليلية. أرضية من خطوط ضوء تمتد نحو الأفق وتجري نحوك، وبكسلات تصعد وتومض كالعملات، وطبقة هولوغرامية
    تمر على الصورة كما تمر على بطاقة نادرة، وخطوط الشاشة ثابتة فوقها. الإطار الداخلي منقّط كنقاط الشاشة */
-/* صورتها: لوحة Tekken 8 الرسمية (كازويا وجين في نار الجين الشيطاني) على وسطها، بحضور كامل */
+/* صورتها: ما اختاره صاحب الموقع (data/site.json: doors)، وإلا لوحة لعبة من مكتبته */
 @keyframes pixel{0%{transform:translateY(0);opacity:0}10%{opacity:1}55%{opacity:.85}100%{transform:translateY(-190px);opacity:0}}
 /* الأرضية: سطح طويل مائل نحو الأفق، منظوره بمقاس البوابة نفسها (cqh) فيبقى الأفق في الموضع ذاته على كل شاشة، ويجري نحوك خلية خلية */
   background:linear-gradient(rgba(53,224,255,.4) 2px,transparent 2px) 0 0/100% 7cqh,linear-gradient(90deg,rgba(53,224,255,.3) 2px,transparent 2px) 50% 0/7cqh 100%;animation:grid-run 1.8s linear infinite}
@@ -152,16 +152,16 @@ a.door:focus-visible{outline:3px solid var(--c1);outline-offset:4px}
     background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 0 0 0 0 1'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E") 0 0/180px 180px}
   /* والثلاث الباقية على طريقة دي سي نفسها: غلاف طولي بلا كتابة بدقته الأصلية، بحضوره كاملاً (بلا تعتيم ولا مرشحات)، والعتمة من
      الحواف والقاعدة للنص فقط، وحبيبات الفيلم نفسها. تُطبَّق حين يحمل الغلاف فعلاً (data-poster)، وإن تعذّر بقيت البوابة على صورتها السابقة.
-     أنمياتي: غلاف يختاره بناء البيانات (بوستر بلا كتابة لعمل البوابة المسمّى في data-art، وإلا بوستره العادي)، ووهج الأفق من تحته والنجوم فوقه.
-     الأفلام: وجه K يرفع عينيه في المطر (Blade Runner 2049)، وشعاع آلة العرض يعبره.
-     ألعابي: كازويا وجين في نار الجين الشيطاني، لوحة Tekken 8 الرسمية بدقة 4K، كاملة بارتفاع البوابة إلا قاعدتها، وأرضية الحلبة تحتهما */
-  .door[data-poster]:is(.anime,.films) .art img{filter:none}
-  .door[data-poster]:is(.anime,.films) .art img.in{opacity:1}
+     الغلاف يختاره صاحب الموقع لكل بوابة (data/site.json: doors، tall)، وإلا فبوستر عمل من قائمته. ومن فوقه أثر البوابة: النجوم ووهج الأفق في أنمياتي،
+     وشعاع آلة العرض في الأفلام، وخطوط الشاشة وبريقها في ألعابي */
+  .door[data-poster]:is(.anime,.films,.games) .art img{filter:none}
+  .door[data-poster]:is(.anime,.films,.games) .art img.in{opacity:1}
   .door[data-poster].anime .art img{object-position:center 26%;transform-origin:50% 20%}
-  .door[data-poster].films .art img{object-position:center 30%;transform-origin:50% 15%}
-  .door[data-poster]:is(.anime,.films) .art::after{background:radial-gradient(100% 75% at 50% 32%,transparent 55%,color-mix(in srgb,var(--bg) 75%,transparent)),
+  .door[data-poster]:is(.films,.games) .art img{object-position:center 30%;transform-origin:50% 15%}
+  .door[data-poster].games .art::before{opacity:.4}
+  .door[data-poster]:is(.anime,.films,.games) .art::after{background:radial-gradient(100% 75% at 50% 32%,transparent 55%,color-mix(in srgb,var(--bg) 75%,transparent)),
     linear-gradient(180deg,color-mix(in srgb,var(--bg) 10%,transparent),transparent 12%,transparent 52%,color-mix(in srgb,var(--bg) 55%,transparent) 66%,var(--bg) 86%)}
-  .door[data-poster]:is(.anime,.films)::after{content:"";position:absolute;inset:0;z-index:-1;pointer-events:none;border-radius:inherit;opacity:.2;mix-blend-mode:overlay;
+  .door[data-poster]:is(.anime,.films,.games)::after{content:"";position:absolute;inset:0;z-index:-1;pointer-events:none;border-radius:inherit;opacity:.2;mix-blend-mode:overlay;
     background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 0 0 0 0 1'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E") 0 0/180px 180px}
   .hall-nav{display:none}
 }

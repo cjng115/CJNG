@@ -19,7 +19,7 @@ import { describe, noun, model } from './anime-pos.js?v=__BUILD__';
 import { themeOf } from './anime-theme.js?v=__BUILD__';
 import { GENRE } from './anime-genres.js?v=__BUILD__';
 import { simklStart, simklPoll, simklPull, simklToken, simklForget, simklAhead } from './anime-simkl.js?v=__BUILD__';
-import { isOpen, setOpen, hides, covered, uncover, marks, markEl, showing, setShowing, drawEye, eyeBtn, cover } from './adult.js?v=__BUILD__'; // فلتر +18 (E65)
+import { isOpen, setOpen, hides, covered, uncover, marks, markEl, showing, setShowing, drawEye, eyeBtn, cover, dockEye } from './adult.js?v=__BUILD__'; // فلتر +18 (E65)
 import './zoom.js?v=__BUILD__';
 import './rail.js?v=__BUILD__'; // الشرائط الأفقية: السحب بالماوس والسهمان على طرفيها
 const BUILD = '__BUILD__', KEY = 'animeg.progress', UI = 'anime.ui', ADDK = 'animeg.added';
@@ -51,7 +51,7 @@ const RATING = { G: 'لكل الأعمار', PG: 'للأطفال', 'PG-13': '+13
 const SCORE = ['', 'مروّع', 'فظيع', 'سيئ جداً', 'سيئ', 'متوسط', 'لا بأس به', 'جيد', 'جيد جداً', 'عظيم', 'تحفة'];
 const ic = n => `<svg class="ic" aria-hidden="true"><use href="#i-${n}"/></svg>`;
 const SPRITE = `<svg hidden aria-hidden="true"><defs>
-<symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol><symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></symbol>
+<symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol><symbol id="i-back" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></symbol><symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></symbol>
 <symbol id="i-play" viewBox="0 0 24 24"><path fill="currentColor" stroke-width="1.6" d="M8.5 6v12l10-6z"/></symbol><symbol id="i-pause" viewBox="0 0 24 24"><path d="M9 6v12M15 6v12"/></symbol>
 <symbol id="i-drop" viewBox="0 0 24 24"><circle cx="12" cy="12" r="7.5"/><path d="M6.8 6.8l10.4 10.4"/></symbol><symbol id="i-mark" viewBox="0 0 24 24"><path d="M7 4.5h10v15l-5-3.5-5 3.5z"/></symbol>
 <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5.5v13M5.5 12h13"/></symbol><symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M4 12h16M12 4c2.7 2.5 2.7 13.5 0 16M12 4c-2.7 2.5-2.7 13.5 0 16"/></symbol><symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6"/><path d="M15.5 15.5L20 20"/></symbol>
@@ -73,7 +73,7 @@ load();
 // ---------- البيانات
 // list وby: ما يظهر الآن: أعمالك، ومعها أعمال +18 حين يُرفع الفلتر (isOpen، وrelist تعيد بناءهما عند التبديل). all وknown: كل ما في الكتالوج، للاستيراد والمطابقة. adult: أرقام أعمال +18
 const D = { list: [], by: new Map(), all: [], known: new Set(), adult: new Set(), worlds: [], wby: new Map(), prov: {}, genres: [], base: 'https://image.tmdb.org/t/p/', mal: 'https://cdn.myanimelist.net/images/anime/', texts: new Map(), found: null, eps: {}, epc: new Map() };
-const ui = { list: 'watching', view: 'list', q: '', sort: 'mal', type: '', genre: -1, shown: 60, names: 'romaji' };
+const ui = { list: 'watching', view: 'list', q: '', sort: 'mal', type: '', genres: [], shown: 60, names: 'romaji' };
 try { const u = JSON.parse(store.get(UI) || '{}'); for (const k of ['list', 'sort', 'names']) if (typeof u[k] === 'string') ui[k] = u[k]; } catch {}
 const keep = () => store.set(UI, JSON.stringify({ list: ui.list, sort: ui.sort, names: ui.names }));
 const get = async f => { const r = await fetch(`data/${f}?v=${BUILD}`); if (!r.ok) throw new Error(f + ' ' + r.status); return r.json(); };
@@ -83,6 +83,8 @@ const srcset = a => a.img ? `${D.mal}${a.img}.webp 225w, ${D.mal}${a.img}l.webp 
 // صورة عمل +18 مغطاة حتى تُكشف: مصغّرته وحدها مموّهة (cover في adult.js)، وحاويتها تأخذ الصنف x18
 const hid = a => !!a.ad && covered(a.id) && !!poster(a), xc = a => hid(a) ? ' x18' : '', tiny = a => a.img ? `${D.mal}${a.img}t.webp` : a.tp ? `${D.base}w92${a.tp}` : a.iu || '';
 const art = (a, sizes, eager, hint) => hid(a) ? cover(`<img ${eager ? '' : 'loading="lazy" '}decoding="async" alt="" src="${esc(tiny(a))}">`, hint) : poster(a) ? `<img ${eager ? '' : 'loading="lazy" '}decoding="async" alt="" src="${esc(poster(a))}" srcset="${esc(srcset(a))}" sizes="${sizes}">` : `<span class="ph">${esc((a.t.match(/[A-Za-z0-9]/) || ['؟'])[0].toUpperCase())}</span>`;
+// مصغّرة عمل في شريط سلسلته وخطها الزمني (E73): صورة عمل +18 لم تُكشف مصغّرتها وحدها مغطاة بعين البوابة، كغلاف الشبكة
+const thumb = a => hid(a) ? `<span class="th x18">${cover(`<img loading="lazy" decoding="async" alt="" src="${esc(tiny(a))}">`)}</span>` : poster(a) ? `<img loading="lazy" decoding="async" alt="" src="${esc(poster(a))}">` : `<span class="ph">${esc((a.t.match(/[A-Za-z0-9]/) || ['؟'])[0].toUpperCase())}</span>`;
 // صور MyAnimeList كلها بصيغة webp، وإن تعذّرت واحدة فنسختها jpg
 document.addEventListener('error', e => { const i = e.target; if (i.tagName === 'IMG' && /cdn\.myanimelist\.net/.test(i.src) && /\.webp$/.test(i.src) && !i.dataset.jpg) { i.dataset.jpg = 1; i.removeAttribute('srcset'); i.src = i.src.replace(/\.webp$/, '.jpg'); } }, true);
 // في قائمتي: ما له سجل. وقبل الاستيراد على هذا الجهاز تُعرض القائمة العامة كلها بلا سجل
@@ -129,7 +131,7 @@ document.body.insertAdjacentHTML('beforeend', `${SPRITE}
     <g fill="currentColor"><path d="M297 14h6v70h-6zM282 22h36v3h-36zM286 34h28v3h-28zM597 18h6v62h-6zM584 26h32v3h-32zM897 12h6v72h-6zM880 20h40v3h-40zM886 32h28v3h-28z"/></g></svg></section>
 <nav class="bar" aria-label="البحث والقوائم"><div class="row"><a class="gate" href="../" aria-label="العودة إلى البوابات" aria-hidden="true" tabindex="-1"><span class="gate-em">${miniDoor}</span><span class="gate-t">البوابات</span></a>
   <label class="search">${ic('search')}<span class="sr">ابحث في أنمياتي</span><input id="q" type="search" placeholder="ابحث: أنمي، استوديو، سنة" autocomplete="off" enterkeyhint="search"></label>
-  <div class="views" role="group" aria-label="طريقة العرض"><button data-act="view" data-v="list" aria-pressed="true">الأعمال</button><button data-act="view" data-v="worlds" aria-pressed="false">السلاسل</button></div></div>
+  <div class="views" role="group" aria-label="طريقة العرض"><button data-act="view" data-v="list" aria-pressed="true">الأعمال</button><button data-act="view" data-v="worlds" aria-pressed="false">السلاسل</button></div>${eyeBtn(true)}</div>
   <div class="lists" id="lists" role="group" aria-label="قوائمي"></div>
   <div class="tools" id="tools"><select id="sort" aria-label="الترتيب"><option value="mal">ترتيب قائمتي</option><option value="score">تقييمي، الأعلى أولاً</option><option value="pub">تقييم MyAnimeList</option><option value="new">الأحدث صدوراً</option><option value="old">الأقدم صدوراً</option><option value="prog">الأقرب إلى الإكمال</option></select>
     <select id="type" aria-label="النوع"><option value="">كل الأنواع</option></select>
@@ -140,7 +142,7 @@ document.body.insertAdjacentHTML('beforeend', `${SPRITE}
 <footer class="foot"><p>معلومات الأنمي وصوره وتقييماته من <a href="https://myanimelist.net/" target="_blank" rel="noopener">${ltr('MyAnimeList')}</a>، والبوسترات العالية الدقة والخلفيات من <a href="https://www.themoviedb.org/" target="_blank" rel="noopener">${ltr('TMDB')}</a>، وبيانات أماكن العرض من <a href="https://www.justwatch.com/" target="_blank" rel="noopener">${ltr('JustWatch')}</a>، ومطابقة الأرقام بين المواقع من ${ltr('Fribb/anime-lists')}. ${ltr('This product uses the TMDB API but is not endorsed or certified by TMDB.')}</p>
   <p><button class="syncb" data-sync-open><span data-sync-label></span></button> <button class="syncb" data-keys-open>مفاتيح الموقع</button></p><p class="sig" dir="ltr">By: Faisal Bubshait <q>Gon Freex</q></p></footer>
 <dialog id="addd" aria-labelledby="add-h"><button class="close" data-act="close" aria-label="إغلاق">${ic('x')}</button><div class="scroll" id="add-body"></div></dialog>
-<dialog id="sheet" aria-label="بطاقة العمل"><button class="close" data-act="close" aria-label="إغلاق">${ic('x')}</button><div class="scroll" id="sheet-body"></div></dialog>
+<dialog id="sheet" aria-label="بطاقة العمل"><button class="close" data-act="close" aria-label="إغلاق">${ic('x')}</button><button class="close sback" data-act="back" aria-label="رجوع إلى البطاقة السابقة" hidden>${ic('back')}</button><div class="scroll" id="sheet-body"></div></dialog>
 <dialog id="wsheet" aria-label="السلسلة"><button class="close" data-act="close" aria-label="إغلاق">${ic('x')}</button><div class="scroll" id="wsheet-body"></div></dialog>
 <dialog id="imp" aria-labelledby="imp-h"><button class="close" data-act="close" aria-label="إغلاق">${ic('x')}</button><div class="scroll" id="imp-body"></div></dialog>
 <div class="toast" id="toast" role="status"></div>`);
@@ -191,23 +193,28 @@ let tonightId = 0, amoods = []; try { amoods = (store.get('anime.mood') || '').s
 // يصلح بدايةً: ما قبله في خطه أكملته (أو هو أوله)، وما كان فرعاً (جانبياً، نسخة أخرى، ملخصاً…) فأصله أكملته أيضاً
 const startable = a => { const w = D.wby.get(a.w); if (!w) return true; const M = model(w, D.by), L = M.lines[M.lineOf.get(a.id)]; if (!L) return true; const i = L.ids.indexOf(a.id), done = id => me(id)?.s === 'completed';
   if (i > 0 && !done(L.ids[i - 1])) return false; const root = M.refOf.get(L.ids[0]); return L.i === 0 || !root || done(root); };
-const tonightOk = a => !a.ad && me(a.id)?.s === 'plan' && a.st !== 'soon' && !a.pending && (a.img || a.tp) && startable(a);
+// أعمال +18 تدخل الاقتراح والعين مفتوحة، وتخرج منه حين تُغلق (E78)، وصورتها لا تظهر فيه حتى تُكشف
+const tonightOk = a => (!a.ad || isOpen()) && me(a.id)?.s === 'plan' && a.st !== 'soon' && !a.pending && (a.img || a.tp) && startable(a);
 const gfits = a => amoods.filter(g => (a.g || []).includes(g)).length;
 function pickTonight(fresh) { const all = D.list.filter(tonightOk); let best = 0; for (const a of all) best = Math.max(best, gfits(a)); const good = a => !amoods.length || !best || gfits(a) === best;
   const cur = D.by.get(tonightId); if (!fresh && cur && tonightOk(cur) && good(cur)) return { a: cur, best };
   const pool = all.filter(a => good(a) && a.id !== tonightId), from0 = pool.length ? pool : all.filter(good); if (!from0.length) return { a: null, best };
   const strong = from0.filter(a => (a.sc || 0) >= 7.8), from = strong.length >= 4 ? strong : from0, a = from[Math.floor(Math.random() * from.length)]; tonightId = a.id; return { a, best }; }
-function renderTonight(fresh) { const box = $('#tonight'); if (!box) return; if (!hasLog()) { box.innerHTML = ''; return; }   // والاقتراح لا يختار عمل +18 (tonightOk)
+function renderTonight(fresh) { const box = $('#tonight'); if (!box) return; if (!hasLog()) { box.innerHTML = ''; return; }   // وأعمال +18 فيه والعين مفتوحة وحدها (tonightOk، E78)
   const n = new Map(); for (const a of D.list) if (tonightOk(a)) for (const g of a.g || []) n.set(g, (n.get(g) || 0) + 1); amoods = amoods.filter(g => n.has(g));
   const { a, best } = pickTonight(fresh), total = D.list.filter(tonightOk).length; if (!total) { box.innerHTML = ''; return; }
   const chip = (g, name, c) => `<button type="button" data-act="amood" data-g="${g}" aria-pressed="${g < 0 ? !amoods.length : amoods.includes(g)}"${g >= 0 ? ` style="--gh:${ghue(D.genres[g])}"` : ''}>${name}<b>${num(c)}</b></button>`;
   const w = a && D.wby.get(a.w), d = w ? pos(w, a.id) : null, wn = w ? (ui.names === 'english' && w.en ? w.en : w.name) : '', meta = a ? [typeOf(a), a.y || '', a.type !== 'Movie' && a.eps ? nEps(a.eps) : '', a.sc ? `${ltr('MyAnimeList')} ${a.sc.toFixed(2)}` : ''].filter(Boolean).join(' · ') : '';
   const gs = a ? [...(a.g || []).filter(g => amoods.includes(g)), ...(a.g || []).filter(g => !amoods.includes(g))].slice(0, 3).map(g => genreOf(D.genres[g])).join('، ') : '';
-  const hint = amoods.length >= 2 ? (best === amoods.length ? `عمل يجمع ${amoods.map(g => genreOf(D.genres[g])).join(' و')}.` : best ? `لا عمل في «سأشاهده» يجمعها كلها، فهذا أقربها: يجمع ${best} من ${amoods.length}.` : 'لا عمل في «سأشاهده» من هذه التصنيفات.') : '';
-  box.innerHTML = `<section class="tn" aria-label="اقتراح الليلة"${a?.ac ? ` style="--ac:#${a.ac}"` : ''}>${a?.bd ? `<div class="tn-bd"><img alt="" decoding="async" src="${D.base}w780${a.bd}"></div>` : ''}
+  // أقرب ما وُجد حين لا عمل يجمع المزاج كله: يقال ما فيه منه وما ليس فيه بأسمائها، فلا يُظن أنه أخطأ (E76)
+  const gn = g => genreOf(D.genres[g]), has = a ? amoods.filter(g => (a.g || []).includes(g)) : [], miss = amoods.filter(g => !has.includes(g));
+  const hint = amoods.length >= 2 ? (best === amoods.length ? `عمل يجمع ${amoods.map(gn).join(' و')}.` : best ? `لا عمل في «سأشاهده» يجمعها كلها، فهذا أقربها: يجمع ${best} من ${amoods.length}، فيه ${has.map(gn).join(' و')} وليس فيه ${miss.map(gn).join(' ولا ')}.` : 'لا عمل في «سأشاهده» من هذه التصنيفات.') : '';
+  // المختار من المزاج أولاً، فلا يبقى منه شيء خارج الشريط لا يُرى (E76)، ثم البقية بأعدادها
+  const moodOrder = [...amoods.filter(g => n.has(g)).map(g => [g, n.get(g)]), ...[...n].filter(([g]) => !amoods.includes(g)).sort((x, y) => y[1] - x[1])];
+  box.innerHTML = `<section class="tn" aria-label="اقتراح الليلة"${a ? marks(a.id, a.ad) : ''}${a?.ac ? ` style="--ac:#${a.ac}"` : ''}>${a?.bd && !(a.ad && covered(a.id)) ? `<div class="tn-bd"><img alt="" decoding="async" src="${D.base}w780${a.bd}"></div>` : ''}
     <div class="tn-t"><p class="tn-l">اقتراح الليلة من «سأشاهده»</p>${a ? `<h2 dir="ltr"${title(a).length > 34 ? ' class="long"' : ''}>${esc(title(a))}</h2>${d ? `<p class="tn-k">${d.badge}${wn && wn !== title(a) ? ` · ${ltr(wn)}` : ''}</p>` : '<p class="tn-k">عمل منفرد</p>'}<p class="tn-m">${meta}${gs ? ` · ${gs}` : ''}</p>
       <div class="acts"><button class="btn pri" data-act="open" data-id="${a.id}">افتح بطاقته</button><button class="btn ghost" data-act="treroll">${ic('warp')}<span>اقتراح آخر</span></button><button class="btn ghost" data-act="status" data-id="${a.id}" data-s="watching">${ic('play')}<span>سأبدأه الآن</span></button></div>` : '<h2>لا شيء بهذا المزاج</h2>'}
-      <div class="tn-mood"><span>مزاجك الليلة</span><div class="gchips tn-c" data-drag>${chip(-1, 'أي تصنيف', total)}${[...n].sort((x, y) => y[1] - x[1]).map(([g, c]) => chip(g, genreOf(D.genres[g]), c)).join('')}</div></div>${hint ? `<p class="tn-h">${hint}</p>` : ''}</div></section>`; }
+      <div class="tn-mood"><span>مزاجك الليلة<small>الأعداد مما تبدأه الآن من «سأشاهده»</small></span><div class="gchips tn-c" data-drag>${chip(-1, 'أي تصنيف', total)}${moodOrder.map(([g, c]) => chip(g, gn(g), c)).join('')}</div></div>${hint ? `<p class="tn-h">${hint}</p>` : ''}</div></section>`; }
 
 // ---------- القوائم والشبكة
 function renderLists() { const n = l => inList(l).length, log = hasLog();
@@ -221,7 +228,7 @@ const arHit = (a, q) => { if (!a?.an || !isArQ(q)) return ''; const k = arKey(q)
 const hay = a => a.h ||= fold(`${a.t} ${a.en || ''} ${a.studio || ''} ${a.y || ''}`);
 function visible() { const log = hasLog(), list = log ? ui.list : 'all'; let l = D.list.filter(a => list === 'all' ? mine(a) : P.a[a.id]?.s === list);
   if (ui.type) l = l.filter(a => a.type === ui.type);
-  D.pool = l; if (ui.genre >= 0) l = l.filter(a => (a.g || []).includes(ui.genre));   // pool: ما قبل التصنيف، منه أعداد شريط التصنيفات
+  D.pool = l; if (ui.genres.length) l = l.filter(hasAll);   // pool: ما قبل التصنيفات، منه أعداد شريطها. والمختار منها يجتمع كله في العمل (E76)
   D.found = null; const q = fold(ui.q || '').trim();
   if (q) { const hit = l.filter(a => hay(a).includes(q) || arHit(a, ui.q)); if (hit.length) l = hit; else { const r = find(D.prep ||= prepare(D.list.filter(mine), a => [a.t, a.en, ...(a.an || [])]), ui.q, { limit: 12, min: 50 }); const ids = new Set(r.hits.map(h => h.id)); l = l.filter(a => ids.has(a.id)); D.found = r.meant?.name || null; } }
   const sc = a => me(a.id)?.r || 0, ratio = a => { const m = me(a.id); return a.eps && m?.p ? m.p / a.eps : 0; }, ord = (a, b) => (a.ord ?? 1e9) - (b.ord ?? 1e9) || a.id - b.id;
@@ -231,9 +238,9 @@ function visible() { const log = hasLog(), list = log ? ui.list : 'all'; let l =
 let cur = [];
 function renderGrid(keepShown) { cur = visible(); if (!keepShown) ui.shown = 60; const g = $('#grid'), log = hasLog();
   document.body.toggleAttribute('data-empty', !D.list.length);   // لا أعمال بعد: الدعوة وحدها، بلا بحث ولا قوائم ولا تصفية
-  $('#count').innerHTML = !D.list.length ? '' : ui.view === 'worlds' ? `${count(D.worlds.length, ['سلسلة واحدة', 'سلسلتان', 'سلاسل', 'سلسلة', 'سلسلة'])} فيها أعمال من قائمتك، الأكثر حضوراً فيها أولاً` : `${nWorks(cur.length)}${ui.genre >= 0 ? ` من تصنيف ${genreOf(D.genres[ui.genre])}` : ''}${ui.q ? ` تطابق «${esc(ui.q)}»` : ''}${D.found ? `، هل تقصد ${ltr(D.found)}؟` : ''}${log ? '' : ' · بلا سجل على هذا الجهاز'}`;
+  $('#count').innerHTML = !D.list.length ? '' : ui.view === 'worlds' ? `${count(D.worlds.length, ['سلسلة واحدة', 'سلسلتان', 'سلاسل', 'سلسلة', 'سلسلة'])} فيها أعمال من قائمتك، الأكثر حضوراً فيها أولاً` : `${nWorks(cur.length)}${gsay()}${ui.q ? ` تطابق «${esc(ui.q)}»` : ''}${D.found ? `، هل تقصد ${ltr(D.found)}؟` : ''}${log ? '' : ' · بلا سجل على هذا الجهاز'}`;
   g.innerHTML = cur.length ? cur.slice(0, ui.shown).map((a, i) => celHTML(a, 'grid', i)).join('') + (cur.length > ui.shown ? '<i class="more" id="more"></i>' : '')
-    : !D.list.length ? '' : `<p class="none">${ui.q ? 'لا عمل في هذه القائمة يطابق ما كتبت.' : log ? 'هذه القائمة فارغة.' : 'تُحمَّل القائمة…'}</p>`;
+    : !D.list.length ? '' : `<p class="none">${ui.q ? 'لا عمل في هذه القائمة يطابق ما كتبت.' : ui.genres.length > 1 ? 'لا عمل في هذه القائمة يجمع هذه التصنيفات كلها.' : log ? 'هذه القائمة فارغة.' : 'تُحمَّل القائمة…'}</p>`;
   const more = $('#more'); if (more) moreIO.observe(more); renderGenres(); }
 // ---------- شريط التصنيفات: تصنيفات القائمة الظاهرة بأعدادها، الأكثر أولاً، ولكل تصنيف لون ثابت يُعرف به. لمسة تفرز بها الشبكة ولمسة ثانية ترفع الفرز،
 // ويُسحب بالماوس كبقية الشرائط (site/rail.js). الأعداد من القائمة والنوع المختارين قبل التصنيف (D.pool)
@@ -241,11 +248,16 @@ function renderGrid(keepShown) { cur = visible(); if (!keepShown) ui.shown = 60;
 const gmq = matchMedia('(max-width: 700px)'), placeChips = () => { const g = $('#gchips'); if (!g) return; if (gmq.matches) { if (g.nextElementSibling?.id !== 'count') $('#count').before(g); g.classList.add('out'); } else { $('#tools .names').before(g); g.classList.remove('out'); } };
 gmq.addEventListener('change', placeChips);
 const ghue = n => { let h = 7; for (const c of String(n)) h = (h * 31 + c.charCodeAt(0)) % 360; return h; };
-function renderGenres() { const box = $('#gchips'); if (!box) return; const n = new Map(); for (const a of D.pool || []) for (const g of a.g || []) n.set(g, (n.get(g) || 0) + 1);
-  const gs = [...n].sort((a, b) => b[1] - a[1] || a[0] - b[0]); if (ui.genre >= 0 && !n.has(ui.genre)) gs.unshift([ui.genre, 0]);
-  const x = box.scrollLeft, chip = (g, name, c) => `<button type="button" data-act="genre" data-g="${g}" aria-pressed="${ui.genre === g}"${g >= 0 ? ` style="--gh:${ghue(D.genres[g])}"` : ''}>${name}${c != null ? `<b>${num(c)}</b>` : ''}</button>`;
-  box.innerHTML = chip(-1, 'كل التصنيفات') + gs.map(([g, c]) => chip(g, genreOf(D.genres[g]), c)).join(''); box.scrollLeft = x;
-  const on = box.querySelector('[aria-pressed=true]'); if (on && ui.genre >= 0) { const r = on.getBoundingClientRect(), b = box.getBoundingClientRect(); if (r.left < b.left || r.right > b.right) on.scrollIntoView({ block: 'nearest', inline: 'center', behavior: calm ? 'auto' : 'smooth' }); } }
+// تختار منه تصنيفاً أو أكثر كمزاج «اقتراح الليلة» (E76): لمسة تضيف ولمسة ترفع، و«كل التصنيفات» يرفعها كلها، والشبكة ما يجمع المختار كله.
+// المختار أولاً بلا عدد (عدده في سطر العدّ)، وعدد كل تصنيف غيره: كم عملاً يبقى إن أضفته، وما لا يجتمع مع المختار لا يظهر. jump: بعد لمسة، يعود الشريط إلى أوله
+const hasAll = a => ui.genres.every(g => (a.g || []).includes(g));
+const gsay = () => { const l = ui.genres.map(g => genreOf(D.genres[g])); return !l.length ? '' : l.length === 1 ? ` من تصنيف ${l[0]}` : ` من تصنيف${l.length === 2 ? 'َي' : 'ات'} ${l.join(' و')} معاً`; };
+function renderGenres(jump) { const box = $('#gchips'); if (!box) return; const sel = ui.genres, n = new Map();
+  for (const a of D.pool || []) if (hasAll(a)) for (const g of a.g || []) if (!sel.includes(g)) n.set(g, (n.get(g) || 0) + 1);
+  const gs = [...n].sort((a, b) => b[1] - a[1] || a[0] - b[0]);
+  const x = box.scrollLeft, chip = (g, name, c) => `<button type="button" data-act="genre" data-g="${g}" aria-pressed="${g < 0 ? !sel.length : sel.includes(g)}"${g >= 0 ? ` style="--gh:${ghue(D.genres[g])}"` : ''}>${name}${c != null ? `<b>${num(c)}</b>` : ''}</button>`;
+  box.innerHTML = chip(-1, 'كل التصنيفات') + sel.map(g => chip(g, genreOf(D.genres[g]))).join('') + gs.map(([g, c]) => chip(g, genreOf(D.genres[g]), c)).join('');
+  if (jump) box.scrollTo({ left: 0, behavior: calm ? 'auto' : 'smooth' }); else box.scrollLeft = x; }
 const moreIO = new IntersectionObserver(es => { if (!es.some(e => e.isIntersecting)) return; moreIO.disconnect(); const from = ui.shown; ui.shown += 60; const more = $('#more'); if (!more) return;
   more.insertAdjacentHTML('beforebegin', cur.slice(from, ui.shown).map((a, i) => celHTML(a, 'grid', i)).join('')); if (cur.length > ui.shown) moreIO.observe(more); else more.remove(); }, { rootMargin: '900px' });
 function setView(v) { ui.view = v; $$('.views button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.v === v)));
@@ -297,9 +309,9 @@ function whereHTML(a) { if (a.pv === undefined || a.st === 'soon') return ''; co
   return `<section class="sec where"><h3>أين تشاهده في السعودية</h3>${rows ? rows + `<p class="lbl">الأزرار تفتح صفحة أماكن العرض على ${ltr('TMDB')}، ومنها إلى المنصة. البيانات من ${ltr('JustWatch')} وتتحدث يومياً${!season ? '' : a.pvs ? '، وهي لهذا الموسم بعينه' : '، وهي للمسلسل كله لا لهذا الموسم وحده'}.</p>`
     : `<p class="lbl">لا تذكر بيانات ${ltr('JustWatch')} منصة تعرض${a.pvs ? ' هذا الموسم' : 'ه'} في السعودية حالياً.</p>${other.length ? `<div class="wrow"><b>مواسم أخرى من المسلسل</b><span class="wl">${other.map(id => chip(id, a.pvo.link || show)).join('')}</span></div>` : ''}`}</section>`; }
 const dot = id => { const s = me(id)?.s; return s ? `<i class="dot" data-l="${s}"></i>` : ''; };
-function worldStrip(a) { const w = D.wby.get(a.w); if (!w) return ''; const order = w.story || w.ids, at = order.indexOf(a.id) + 1;
+function worldStrip(a) { const w = D.wby.get(a.w); if (!w) return ''; const order = (w.story || w.ids).filter(id => D.by.has(id)), at = order.indexOf(a.id) + 1;
   return `<section class="sec"><h3>من سلسلة ${ltr(w.name)}</h3><p class="lbl">العمل ${at} من ${order.length} بترتيب ${w.story ? 'القصة' : 'الصدور'}</p>
-    <div class="strip">${order.map(id => D.by.get(id)).filter(Boolean).map(x => `<button data-act="open" data-id="${x.id}" aria-current="${x.id === a.id}" aria-label="${esc(x.t)}">${dot(x.id)}${poster(x) ? `<img loading="lazy" alt="" src="${esc(poster(x))}">` : `<span class="ph">${esc(x.t[0])}</span>`}<span>${esc(title(x))}</span></button>`).join('')}</div>
+    <div class="strip">${order.map(id => D.by.get(id)).filter(Boolean).map(x => `<button data-act="open" data-id="${x.id}" aria-current="${x.id === a.id}" aria-label="${esc(x.t)}"${marks(x.id, x.ad)}>${dot(x.id)}${thumb(x)}<span>${esc(title(x))}</span></button>`).join('')}</div>
     <div class="acts"><button class="btn ghost" data-act="world" data-w="${w.id}">افتح السلسلة بترتيبها</button></div></section>`; }
 // ---------- «موقعه من سلسلته»: لافتة محطة تحت العنوان تقول بجملة واضحة ما هذا الجزء من سلسلته وما يكمله وما بعده، وفوقها خريطة خطه
 // (الجمل في site/anime-pos.js من خطوط السلسلة في الكتالوج). كل اسم فيها يفتح بطاقته، وما ليس في «أنمياتي» يُذكر باسمه
@@ -324,7 +336,7 @@ function posMap(d) { const { ids, at, branch } = d.map, n = ids.length, MAX = 13
 function soloHTML(a) { if (a.pending || a.pk) return ''; const [n, g] = noun(a);
   return `<section class="pos" data-k="solo" aria-label="موقعه من سلسلته"><svg class="pos-map" height="24" aria-hidden="true"><line class="trk" x1="38%" x2="62%" y1="12" y2="12"/><circle class="ring" cx="50%" cy="12" r="9"/><circle class="here" cx="50%" cy="12" r="5.5"/></svg>
     <p class="pos-h"><b class="pos-b">عمل منفرد</b>${n !== 'عمل' && n !== 'جزء قادم' ? `<span class="pos-s">${n}</span>` : ''}</p><p class="pos-t">${g === 'f' ? 'قائمة بذاتها' : 'قائم بذاته'}: ليس جزءاً من سلسلة، فلا أجزاء قبله ولا بعده حتى الآن.</p></section>`; }
-function posHTML(a) { if (a.ad) return ''; const w = D.wby.get(a.w); if (!w || w.ids.length < 2) return soloHTML(a); const d = pos(w, a.id); if (!d) return '';
+function posHTML(a) { const w = D.wby.get(a.w); if (!w || seen(w) < 2) return soloHTML(a); const d = pos(w, a.id); if (!d) return '';
   const order = (w.story || w.ids).filter(id => D.by.has(id)), at = order.indexOf(a.id) + 1;
   return `<section class="pos" data-k="${d.kind}" aria-label="موقعه من سلسلته">${posMap(d)}
     <p class="pos-h"><b class="pos-b">${d.badge}</b>${d.sub ? `<span class="pos-s">${d.sub}</span>` : ''}</p>
@@ -337,7 +349,7 @@ function sheetHTML(a, x) { if (x?.ar) unask(a.id, 'about'); const big = a.tp ? `
     a.se && a.y ? [`${SEASON[a.se]} ${a.y}`] : a.y ? [a.y] : null, a.st === 'airing' ? ['يُعرض الآن'] : null, a.studio ? [ltr(a.studio)] : null, x?.source ? [`المصدر: ${SOURCE[x.source] || ltr(x.source)}`] : null, a.rating ? [/^\+/.test(RATING[a.rating] || a.rating) ? ltr(RATING[a.rating] || a.rating) : RATING[a.rating] || ltr(a.rating)] : null].filter(Boolean);
   const alt = [a.en && a.en !== a.t ? a.en : '', ui.names === 'english' && a.en ? a.t : '', x?.jp || ''].filter(Boolean);
   const links = [['MyAnimeList', `https://myanimelist.net/anime/${a.id}`], a.sk ? ['SIMKL', `https://simkl.com/anime/${a.sk}`] : null, x?.anilist ? ['AniList', `https://anilist.co/anime/${x.anilist}`] : null, a.tm ? ['TMDB', `https://www.themoviedb.org/${a.tm.k}/${a.tm.id}`] : null, x?.yt ? ['YouTube', `https://www.youtube.com/watch?v=${encodeURIComponent(x.yt)}`] : null].filter(Boolean);
-  return `<div class="hero">${a.bd ? `<img decoding="async" alt="" src="${D.base}w1280${a.bd}">` : a.bn && !hid(a) ? `<img decoding="async" alt="" src="${esc(a.bn)}">` : ''}</div>
+  return `<div class="hero">${a.bd && !hid(a) ? `<img decoding="async" alt="" src="${D.base}w1280${a.bd}">` : a.bn && !hid(a) ? `<img decoding="async" alt="" src="${esc(a.bn)}">` : ''}</div>
   <div class="body"><div class="head">${hid(a) ? `<button class="cel-art x18"${a.ac ? ` style="--ac:#${a.ac}"` : ''} data-act="bare" data-id="${a.id}" aria-label="أظهر صورة ${esc(a.t)}">${art(a, '170px', true, 'اضغط لإظهارها')}</button>`
       : `<button class="cel-art"${a.ac ? ` style="--ac:#${a.ac}"` : ''} ${poster(a) ? `data-zoom="${esc(big)}" data-zoom-title="${esc(a.t)}"` : 'disabled'} aria-label="تكبير بوستر ${esc(a.t)}">${art(a, '170px', true)}</button>`}
     <div><h2>${esc(title(a))}</h2>${alt.map(t => `<p class="alt">${esc(t)}</p>`).join('')}
@@ -351,14 +363,27 @@ function sheetHTML(a, x) { if (x?.ar) unask(a.id, 'about'); const big = a.tp ? `
 // السجل: كل نافذة يفتحها الموقع خطوة فيه، وحالتها تصف ما هو مفتوح عندها: a العمل، وw السلسلة التي تحته إن فُتح منها، وp أنها خطوة أضافها الموقع فإغلاق نافذتها رجوع.
 // الرابط المباشر والعنوان المكتوب أو الملصوق باليد خطوة بلا حالة: يُقرأ ما يُفتح من الرابط نفسه (at)، وإغلاق نافذتها يغلقها وينظف الرابط (shut).
 // والبطاقة فوق سلسلتها دائماً، ولا تُفتح سلسلة فوق بطاقة: فتح السلسلة من بطاقة يطويها (stash) والرجوع يعيدها كما كانت (reshow)
-async function openWork(id, push = true) { const a = D.by.get(id); if (!a) return; open = id; pkOpen = 0; kept = null; const d = $('#sheet'), body = $('#sheet-body');
+// بطاقة فوق بطاقة (E77): ما يُفتح من بطاقة مفتوحة خطوة جديدة في السجل (c: عدد البطاقات في المكدس، b: التي قبلها)، فالرجوع (زره فوق بجانب ×،
+// أو رجوع المتصفح والجوال، أو Esc) يعيد البطاقة السابقة إلى موضعها كما تُركت، و× يغلقها كلها. back: ما حُفظ من البطاقة حين تُركت (موضعها وحلقاتها)
+const CARD = new Map();
+const leaveCard = () => { const id = open || pkOpen, body = $('#sheet-body'); if (!$('#sheet').open || !id) return 0;
+  CARD.set(depth(), { id, t: body.querySelector('h2')?.textContent || '', y: body.scrollTop, xs: open && X.id === open ? { from: X.from, all: X.all, open: X.open } : null }); return id; };
+const onTop = from => ({ ...(history.state?.p ? history.state : {}), p: 1, n: depth() + 1, c: (history.state?.p ? history.state.c || 1 : 1) + 1, b: from });
+function syncBack() { const btn = $('#sheet .sback'); if (!btn) return; const st = history.state || {}, on = !!($('#sheet').open && st.p && (st.c || 1) > 1), left = CARD.get(depth() - 1);
+  const t = !on ? '' : left?.id === st.b && left.t ? left.t : D.by.has(st.b) ? title(D.by.get(st.b)) : SEED.get(st.b)?.t || '', say = t ? `رجوع إلى «${t}»` : 'رجوع إلى البطاقة السابقة';   // باسمها كما ظهر
+  btn.hidden = !on; btn.setAttribute('aria-label', say); btn.title = say; }
+async function openWork(id, push = true, back = null) { const a = D.by.get(id); if (!a) return; const d = $('#sheet'), body = $('#sheet-body');
+  if (d.open && push && open === id) return;   // البطاقة نفسها
+  const from = d.open && push ? leaveCard() : 0; open = id; pkOpen = 0; kept = null;
   // فوق بوابة عالم تلبس البطاقة ألوانه
   const gw = GM && $('#wsheet').open && D.wby.get(wopen), th = gw && themeOf(gw, D.by, D.genres); d.classList.toggle('themed', !!th); if (th) { d.style.setProperty('--wbg', th.bg); d.style.setProperty('--wc1', th.c1); } delete body.dataset.full; markEl(body, a.id, a.ad); body.innerHTML = sheetHTML(a, null); body.scrollTo(0, 0); showEps(a);
-  if (!d.open) { d.showModal(); body.scrollTo(0, 0); if (push) history.pushState({ a: id, w: $('#wsheet').open ? wopen : 0, add: $('#addd').open ? 1 : 0, p: 1, n: depth() + 1 }, '', `#a${id}`); }   // التصفير بعد العرض: المتصفح يعيد للنافذة موضع تمريرها السابق حين تُعرض، وتصفيره وهي مخفية لا يؤثر
-  else if (push) history.replaceState(history.state?.p ? { ...history.state, a: id } : null, '', `#a${id}`);
+  if (!d.open) { d.showModal(); body.scrollTo(0, 0); if (push) history.pushState({ a: id, w: $('#wsheet').open ? wopen : 0, add: $('#addd').open ? 1 : 0, p: 1, n: depth() + 1, c: 1 }, '', `#a${id}`); }   // التصفير بعد العرض: المتصفح يعيد للنافذة موضع تمريرها السابق حين تُعرض، وتصفيره وهي مخفية لا يؤثر
+  else if (push) history.pushState({ ...onTop(from), a: id, pk: 0 }, '', `#a${id}`);
+  syncBack(); if (back) body.scrollTop = back.y;
   if (a.pending) { const v = await liveOf(id); if (open !== id) return; if (v && fillPending(a, v)) { keepLive(id, v); renderAll(true); }
-    const top = body.scrollTop; markEl(body, a.id, a.ad); body.innerHTML = sheetHTML(a, v ? { ...v.x, live: 1 } : { failed: 1 }); body.scrollTop = top; body.dataset.full = id; return; }
-  const x = await texts(id); if (open !== id) return; if (x) { const top = body.scrollTop; body.innerHTML = sheetHTML(a, x); body.scrollTop = top; showEps(a); } body.dataset.full = id; }
+    const top = body.scrollTop; markEl(body, a.id, a.ad); body.innerHTML = sheetHTML(a, v ? { ...v.x, live: 1 } : { failed: 1 }); body.scrollTop = back ? back.y : top; body.dataset.full = id; return; }
+  const x = await texts(id); if (open !== id) return; if (x) { const top = body.scrollTop; body.innerHTML = sheetHTML(a, x); body.scrollTop = top; showEps(a); } body.dataset.full = id;
+  if (back) { if (back.xs && X.id === id && X.list) { Object.assign(X, back.xs); drawXs(a); } body.scrollTop = back.y; } }   // الرجوع إليها: حلقاتها كما تُركت، ثم موضعها
 const stash = () => { const d = $('#sheet'); if (!d.open) return; kept = { id: open, y: $('#sheet-body').scrollTop }; d.close(); };
 function reshow() { const a = D.by.get(kept.id), body = $('#sheet-body'), y = kept.y; kept = null; open = a.id; $('#sheet').showModal(); body.scrollTop = y; const box = body.querySelector('.mine'); if (box) box.outerHTML = mineHTML(a); drawXs(a); }
 const at = () => { const st = history.state; if (st && (st.a || st.w || st.imp || st.add)) return st; const h = location.hash.slice(1); let m; return (m = h.match(/^a(\d+)$/)) ? { a: +m[1] } : (m = h.match(/^w(\d+)$/)) ? { w: +m[1] } : {}; };
@@ -369,9 +394,14 @@ function apply(st) { const sh = $('#sheet'), ws = $('#wsheet'), a = D.by.has(+st
   if (sh.open && ((!a && !pk) || (w && !ws.open))) stash();
   if (ws.open && !w) ws.close();
   if (w && (wopen !== w || !ws.open)) openWorld(w, false);
-  if (a && (open !== a || !sh.open)) { if (!sh.open && kept?.id === a && +$('#sheet-body').dataset.full === a) reshow(); else openWork(a, false); }
-  else if (pk && (pkOpen !== pk || !sh.open)) peekWork(pk, false); }
+  const back = CARD.get(depth()), mine = x => back?.id === x ? back : null;
+  if (a && (open !== a || !sh.open)) { if (!sh.open && kept?.id === a && +$('#sheet-body').dataset.full === a) reshow(); else openWork(a, false, mine(a)); }
+  else if (pk && (pkOpen !== pk || !sh.open)) peekWork(pk, false, null, mine(pk));
+  syncBack(); }
 const shut = d => { if (history.state?.p) return history.back(); d.close(); if (/^#[aw]\d+$/.test(location.hash)) history.replaceState(null, '', location.pathname + location.search); };
+// × البطاقة يغلق مكدسها كله (E77): يرجع إلى أول بطاقة فيه ثم يغلقها كما تُغلق وحدها، فلا يبقى في السجل ما يعيد فتح شيء منها
+let shutAll = false;
+const shutCards = d => { const c = d.id === 'sheet' && history.state?.p ? history.state.c || 1 : 1; if (c < 2) return shut(d); shutAll = true; history.go(-(c - 1)); };
 
 // ---------- من MyAnimeList مباشرة (E69): عمل ليس في «أنمياتي» تُفتح له بطاقة اطلاع (peek) من نتائج البحث ومن أقرباء ما أُضيف، وعمل أُضيف للتو تمتلئ
 // بطاقته المؤقتة بدل أن تبقى فارغة حتى البناء القادم. يُسأل Jikan وAniList معاً، ولكلٍّ مهلته: Jikan لما في MyAnimeList نفسه (النبذة والتقييم والتصنيفات
@@ -434,17 +464,19 @@ function liveMore(a, x) { const seen = new Set(), rel = (x.rel || []).filter(r =
     + (stream.length ? `<section class="sec where"><h3>منصاته الرسمية</h3><div class="wl">${stream.map(s => `<a href="${esc(s.u)}" target="_blank" rel="noopener">${esc(s.n)}</a>`).join('')}</div><p class="lbl">كما يذكرها ${MAL}، وقد لا يكون كلها متاحاً في السعودية${a.pending ? '. أماكن عرضه في السعودية تظهر مع البناء القادم' : ''}.</p></section>` : ''); }
 // بطاقة اطلاع: تُفتح فوراً بما يُعرف عن العمل (من نتيجة البحث أو من قريبه) وتمتلئ حين يعود MyAnimeList. فوق نافذة البحث أو فوق البطاقة التي فُتحت منها،
 // وكل منها خطوة في السجل، فالرجوع يعيدك إلى ما كنت فيه. وما دخل «أنمياتي» تُفتح بطاقته هو
-async function peekWork(id, push = true, seed = null) { if (D.by.has(id)) return openWork(id, push); if (!(id > 0) || D.known.has(id)) return;
+async function peekWork(id, push = true, seed = null, back = null) { if (D.by.has(id)) return openWork(id, push, back); if (!(id > 0) || D.known.has(id)) return;
   const d = $('#sheet'), body = $('#sheet-body'), s0 = seed?.id === id ? seed : null; if (s0?.ad && !isOpen()) return;
-  open = 0; kept = null; pkOpen = id; d.classList.remove('themed'); delete body.dataset.full;
+  if (d.open && push && pkOpen === id) return;   // البطاقة نفسها
+  const from = d.open && push ? leaveCard() : 0; open = 0; kept = null; pkOpen = id; d.classList.remove('themed'); delete body.dataset.full;
   const draw = (a, x) => { markEl(body, id, a.ad); body.innerHTML = sheetHTML(a, x); };
   const stub = { id, t: s0?.t || String(id), ...(s0?.en ? { en: s0.en } : {}), type: s0?.type || '', eps: s0?.eps || 0, ...(s0?.y ? { y: +s0.y } : {}), ...(/^\d+\/\d+$/.test(s0?.im || '') ? { img: s0.im } : s0?.iu ? { iu: s0.iu } : {}), ...(s0?.ad ? { ad: 1 } : {}), pk: 1 };
-  draw(stub, null); const step = { ...(history.state?.p ? history.state : {}), a: id, pk: 1, w: $('#wsheet').open ? wopen : 0, add: $('#addd').open ? 1 : 0, p: 1, n: depth() + 1 };
+  draw(stub, null); const step = d.open ? { ...onTop(from), a: id, pk: 1 } : { ...(history.state?.p ? history.state : {}), a: id, pk: 1, w: $('#wsheet').open ? wopen : 0, add: $('#addd').open ? 1 : 0, p: 1, n: depth() + 1, c: 1 };
   if (!d.open) { d.showModal(); body.scrollTo(0, 0); if (push) history.pushState(step, '', `#a${id}`); } else { body.scrollTo(0, 0); if (push) history.pushState(step, '', `#a${id}`); }
+  syncBack();
   const v = await liveOf(id); if (pkOpen !== id || !d.open) return;
   if (!v) return draw(stub, { failed: 1 });
   if (v.a.ad && !isOpen()) { pkOpen = 0; shut(d); toast('لا يُعرض هذا العمل الآن.'); return; }
-  const top = body.scrollTop; draw({ ...v.a, pk: 1 }, { ...v.x, live: 1 }); body.scrollTop = top; }
+  const top = body.scrollTop; draw({ ...v.a, pk: 1 }, { ...v.x, live: 1 }); body.scrollTop = back ? back.y : top; }
 
 // ---------- ورقة التوقيت: حلقات العمل. تفتح على الحلقة التالية وما حولها، و«كل الحلقات» تفتح الورقة كلها صفحةً صفحة.
 // fit من البناء: 'odd' عدد الحلقات هنا أقل بقليل من عدد MyAnimeList (تنبيه)، و'loose' المصدر يعدّها عدّاً آخر، فلا يقابل رقمُ الخانة رقمَ الحلقة
@@ -464,7 +496,15 @@ const localOf = (id, m) => ({ id: +id, t: String(m.t || id), type: m.ty || '', e
 // يُدخل عملاً في بيانات الصفحة: في all وknown دائماً، وفي ما يظهر إن لم يخفه الفلتر
 function enroll(a) { if (D.known.has(a.id)) return; D.known.add(a.id); D.all.push(a); if (a.ad) D.adult.add(a.id); if (!hides(a)) { D.list.push(a); D.by.set(a.id, a); D.prep = D.prepAll = null; } }
 // العين (site/adult.js) ترفع الفلتر أو تعيده في مكانها، بلا إعادة تحميل: list وby يُعاد بناؤهما من all، وكل ما بعدهما يُرسم من جديد
-function relist() { D.list.length = 0; D.by.clear(); for (const a of D.all) if (!hides(a)) { D.list.push(a); D.by.set(a.id, a); } D.prep = D.prepAll = null; }
+// السلاسل كما تُرى الآن (E73): أعمال +18 فيها كغيرها، والفلتر قائمٌ تُخفى هي وحدها، فسلسلة كلها +18 لا تظهر في قائمة ولا عدّاد ولا رابط،
+// وسلسلة فيها بعضها تظهر بغيرها، واسمها من أول ما يُرى منها إن كان يحمله عمل +18. نسخ جديدة عند كل تبديل، فنموذج خطوطها (anime-pos) يُحسب بما يُرى
+const seen = w => w.ids.filter(id => D.by.has(id)).length;
+const worldName = t => String(t || '').replace(/\s*\((?:TV|\d{4})\)\s*$/i, '').replace(/\s*(?::|-)?\s*(?:Season\s*\d+|\d+(?:st|nd|rd|th)\s+Season|Part\s*\d+|First Season|S\d+)\s*$/i, '').trim() || String(t || '');   // كما في lib-anime
+function worldsSync() { D.wby.clear(); D.worlds = [];
+  for (const c of D.cw || []) { if (!c.ids.some(id => D.by.get(id)?.ord != null) || seen(c) < 2) continue; const w = { ...c };   // وما بقي منها عمل واحد ظاهر فعمله منفرد
+    if (!isOpen() && (D.adult.has(c.head ?? c.id) || D.adult.has(c.id))) { const f = D.by.get((c.story || c.ids).find(id => D.by.has(id)) ?? c.ids.find(id => D.by.has(id))); w.name = worldName(f.t); w.en = f.en ? worldName(f.en) : undefined; }
+    D.worlds.push(w); D.wby.set(w.id, w); } }
+function relist() { D.list.length = 0; D.by.clear(); for (const a of D.all) if (!hides(a)) { D.list.push(a); D.by.set(a.id, a); } D.prep = D.prepAll = null; worldsSync(); }
 function fillTypes() { const s = $('#type'), types = [...new Set(D.list.filter(a => a.ord != null).map(a => a.type).filter(Boolean))]; s.innerHTML = '<option value="">كل الأنواع</option>' + types.map(t => `<option value="${esc(t)}">${TYPE[t] || esc(t)}</option>`).join(''); s.value = types.includes(ui.type) ? ui.type : ''; ui.type = s.value; }
 function toggleEye() { setOpen(!isOpen()); relist(); drawEye(); fillTypes(); if (hasLog() && ui.list !== 'all' && !inList(ui.list).length) ui.list = inList('watching').length ? 'watching' : 'all';
   renderAll(); toast(isOpen() ? 'رُفع الفلتر: تظهر الأعمال كلها.' : 'عاد الفلتر.'); }
@@ -638,13 +678,13 @@ function tickEp(id, n) { const a = D.by.get(id), p = me(id)?.p || 0; X.ask = 0;
   else { X.ask = n; drawXs(a); } }
 
 // ---------- السلاسل
-const wArt = w => { const a = w.ids.map(id => D.by.get(id)).find(x => x?.bd); return a ? `${D.base}w780${a.bd}` : ''; };
-const wMine = w => w.ids.filter(id => me(id)), wDone = w => w.ids.filter(id => me(id)?.s === 'completed');
+const wArt = w => { const a = w.ids.map(id => D.by.get(id)).find(x => x?.bd && !(x.ad && covered(x.id))); return a ? `${D.base}w780${a.bd}` : ''; };
+const wMine = w => w.ids.filter(id => D.by.has(id) && me(id)), wDone = w => w.ids.filter(id => D.by.has(id) && me(id)?.s === 'completed');
 const isFate = () => false;   // لا دليل Fate في هذه النسخة
 // الأكثر حضوراً في قائمتك أولاً (ثم الأكبر، ثم بالاسم): سلاسلك الكبرى في أعلى الصفحة لا ما يبدأ اسمه بالألف
-function worldsHTML() { const q = fold(ui.q || '').trim(), n = new Map(D.worlds.map(w => [w.id, w.ids.filter(id => mine(D.by.get(id))).length]));
-  const l = D.worlds.filter(w => !q || fold(w.name + ' ' + (w.en || '')).includes(q) || w.ids.some(id => hay(D.by.get(id)).includes(q))).sort((a, b) => n.get(b.id) - n.get(a.id) || b.ids.length - a.ids.length || a.name.localeCompare(b.name, 'en', { sensitivity: 'base' }));
-  return l.map(w => { const n = w.ids.length, m = wMine(w).length, d = wDone(w).length, im = wArt(w);
+function worldsHTML() { const q = fold(ui.q || '').trim(), n = new Map(D.worlds.map(w => [w.id, w.ids.filter(id => D.by.has(id) && mine(D.by.get(id))).length]));
+  const l = D.worlds.filter(w => !q || fold(w.name + ' ' + (w.en || '')).includes(q) || w.ids.some(id => D.by.has(id) && hay(D.by.get(id)).includes(q))).sort((a, b) => n.get(b.id) - n.get(a.id) || seen(b) - seen(a) || a.name.localeCompare(b.name, 'en', { sensitivity: 'base' }));
+  return l.map(w => { const n = seen(w), m = wMine(w).length, d = wDone(w).length, im = wArt(w);
     const th = themeOf(w, D.by, D.genres);
     return `<button class="wc" data-act="world" data-w="${w.id}" style="--wc1:${th.c1};--wbg:${th.bg};--wc2:${th.c2}">${im ? `<img loading="lazy" alt="" src="${im}">` : ''}<h3>${esc(ui.names === 'english' && w.en ? w.en : w.name)}</h3><p>${nWorks(n)} · في قائمتك ${num(m)} · أكملت ${num(d)}</p><i class="wbar" style="--p:${n ? d / n : 0}"></i></button>`; }).join('') || '<p class="none">لا سلسلة تطابق ما كتبت.</p>'; }
 // مدة السلسلة كلها: مجموع حلقات كل عمل في مدة حلقته (والفيلم بطوله)
@@ -652,7 +692,7 @@ const span = min => { const h = Math.round(min / 60); return h >= 48 ? `${nDays(
 // ---------- بوابة العالم (E57): وحدتها وتنسيقها يُحمَّلان حين تُفتح أول بوابة (site/anime-gate.js وanime-gate.css)، ونافذتها نافذة السلسلة (#wsheet) بسجلها
 let GM = null;
 const gateMod = () => GM ? Promise.resolve(GM) : Promise.all([import(`./anime-gate.js?v=${BUILD}`), new Promise(ok => { const l = Object.assign(document.createElement('link'), { rel: 'stylesheet', href: `../anime-gate.css?v=${BUILD}` }); l.onload = l.onerror = ok; document.head.append(l); })])
-  .then(([m]) => { m.init({ D, ui, me, esc, ltr, num, nEps, nWorks, count, span, typeOf, ic, LNAME, poster, title, texts, art: wArt, isFate, calm, pos, air: airTag, model: w => model(w, D.by) }); return GM = m; });
+  .then(([m]) => { m.init({ D, ui, me, esc, ltr, num, nEps, nWorks, count, span, typeOf, ic, LNAME, poster, thumb, hid, marks, title, texts, art: wArt, isFate, calm, pos, air: airTag, model: w => model(w, D.by) }); return GM = m; });
 async function openWorld(wid, push = true, from = null) { const w = D.wby.get(wid); if (!w) return; wopen = wid; const d = $('#wsheet'), fresh = !d.open, g = await gateMod(); if (wopen !== wid) return;
   if (fresh) g.resetView();
   const show = () => { if (wopen !== wid) return; d.className = 'gw'; d.style.cssText = g.themeStyle(w); d.querySelector('.gw-sky')?.remove(); d.insertAdjacentHTML('afterbegin', g.skyHTML(w));
@@ -743,14 +783,15 @@ document.addEventListener('click', async e => { const t = e.target.closest('[dat
     case 'ep-page': X.from = +d.from; X.open = 0; drawXs(D.by.get(open)); $('#xs')?.scrollIntoView({ block: 'start', behavior: calm ? 'auto' : 'smooth' }); break;
     case 'list': ui.list = d.l; keep(); if (ui.view !== 'list') setView('list'); renderLists(); renderGrid(); if (t.closest('.rail')) $('.bar').scrollIntoView({ behavior: calm ? 'auto' : 'smooth' }); break;
     case 'view': setView(d.v); break;
-    case 'genre': ui.genre = +d.g === ui.genre ? -1 : +d.g; renderGrid(); break;
+    case 'genre': { const g = +d.g; ui.genres = g < 0 ? [] : ui.genres.includes(g) ? ui.genres.filter(x => x !== g) : [...ui.genres, g]; renderGrid(); renderGenres(true); break; }
     case 'amood': { const g = +d.g; amoods = g < 0 ? [] : amoods.includes(g) ? amoods.filter(x => x !== g) : [...amoods, g]; store.set('anime.mood', amoods.join()); renderTonight(true); break; }
     case 'treroll': renderTonight(true); break;
     case 'genre-go': showGenre(+d.g); break;
-    case 'world': if ($('#sheet').open && $('#wsheet').open && wopen === +d.w) shut($('#sheet')); else { stash(); openWorld(+d.w, true, t.closest('.wc') || t); } break;   // سلسلته هي المفتوحة تحته: إغلاق البطاقة يكشفها
+    case 'world': if ($('#sheet').open && $('#wsheet').open && wopen === +d.w) shutCards($('#sheet')); else { stash(); openWorld(+d.w, true, t.closest('.wc') || t); } break;   // سلسلته هي المفتوحة تحته: إغلاق البطاقة يكشفها
     case 'gw-order': case 'gw-line': { const w = D.wby.get(wopen), sec = $('#gw-line'); if (!w || !GM || !sec) break; if (d.act === 'gw-order') GM.setView('order', d.o); else GM.setView('line', +d.l);
       const y = $('#wsheet-body').scrollTop; sec.outerHTML = GM.timelineHTML(w); $('#wsheet-body').scrollTop = y; break; }
-    case 'close': shut(t.closest('dialog')); break;
+    case 'close': shutCards(t.closest('dialog')); break;
+    case 'back': history.back(); break;   // البطاقة السابقة (E77)
     case 'import': openImport(); break;
     case 'add': openAdd(); break;
     case 'room': toggleEye(); break;                                             // العين: ترفع الفلتر أو تعيده (site/adult.js)
@@ -795,18 +836,19 @@ let qT = 0; $('#q').addEventListener('input', e => { clearTimeout(qT); qT = setT
 document.addEventListener('dragover', e => { const z = e.target.closest?.('#drop'); if (z) { e.preventDefault(); z.classList.add('over'); } });
 document.addEventListener('dragleave', e => e.target.closest?.('#drop')?.classList.remove('over'));
 document.addEventListener('drop', e => { const z = e.target.closest?.('#drop'); if (z) { e.preventDefault(); z.classList.remove('over'); readFile(e.dataTransfer.files[0]); } });
-// الرجوع (زر المتصفح أو إيماءة الجوال) يغلق النافذة المفتوحة، وEsc مثله
+// الرجوع (زر المتصفح أو إيماءة الجوال) يغلق النافذة المفتوحة، وEsc مثله. والبطاقة المفتوحة من بطاقة يرجع منها إلى التي قبلها (E77)، و× يغلقها كلها
 for (const d of $$('dialog')) { d.addEventListener('cancel', e => { e.preventDefault(); shut(d); });
   d.addEventListener('close', () => { if (d.open) return; if (d.id === 'sheet') { open = 0; pkOpen = 0; } if (d.id === 'wsheet') { wopen = 0; d.classList.remove('in'); } if (d.id === 'imp') IMP.simkl = null; });   // ما أُغلق وأُعيد فتحه في اللحظة نفسها مفتوح
-  d.addEventListener('click', e => { if (e.target === d) shut(d); }); }
-addEventListener('popstate', () => { apply(at()); if (leaving && !history.state?.p) { const f = leaving; leaving = null; f(); } });
+  d.addEventListener('click', e => { if (e.target === d) shutCards(d); }); }
+addEventListener('popstate', () => { if (shutAll) { shutAll = false; return shut($('#sheet')); }   // × من بطاقة فوق بطاقات: وصل إلى أولها، فتُغلق
+  apply(at()); if (leaving && !history.state?.p) { const f = leaving; leaving = null; f(); } });
 // عمق النوافذ في السجل: كل نافذة يفتحها الموقع خطوة عليه (n). والخروج من النوافذ كلها إلى الصفحة يرجع بعددها فلا يبقى في السجل ما يعيد فتحها
 const depth = () => history.state?.n || 0;
 let leaving = null;
 function leaveTo(fn) { const k = depth(); if (k) { leaving = fn; history.go(-k); return; }
   for (const id of ['#sheet', '#wsheet', '#addd', '#imp']) if ($(id).open) $(id).close(); if (location.hash) history.replaceState(null, '', location.pathname + location.search); fn(); }
 // تصنيف من بطاقة عمل: يخرج إلى «أنمياتي» ويفرز قائمتك كلها بذلك التصنيف
-function showGenre(g) { leaveTo(() => { ui.genre = g; ui.list = hasLog() ? 'all' : ui.list; ui.type = ''; $('#type').value = ''; ui.q = ''; $('#q').value = ''; if (ui.view !== 'list') setView('list'); renderLists(); renderGrid();
+function showGenre(g) { leaveTo(() => { ui.genres = [g]; ui.list = hasLog() ? 'all' : ui.list; ui.type = ''; $('#type').value = ''; ui.q = ''; $('#q').value = ''; if (ui.view !== 'list') setView('list'); renderLists(); renderGrid();
   requestAnimationFrame(() => $('#count').scrollIntoView({ block: 'start', behavior: calm ? 'auto' : 'smooth' })); }); }
 
 // ---------- الإقلاع
@@ -818,11 +860,11 @@ try {
   // ما أُضيف من MyAnimeList ولم يدخل الكتالوج بعد يبقى ببطاقته المؤقتة، ويُنسى ما دخل الكتالوج أو مضى عليه شهر
   { const m = addedMap(); let ch = 0; for (const k of Object.keys(m)) if (D.known.has(+k) || !(Date.parse(today) - Date.parse(m[k]?.at) < 30 * 864e5)) { delete m[k]; ch = 1; } else enroll(localOf(k, m[k])); if (ch) store.set(ADDK, JSON.stringify(m));
     for (const k of Object.keys(m)) { const a = D.by.get(+k); if (a?.pending && !a.img && !a.iu) liveOf(a.id).then(v => { if (v && fillPending(a, v)) { keepLive(a.id, v); renderAll(true); } }); } }
-  D.worlds = (cat.worlds || []).filter(w => w.ids.some(id => D.by.get(id)?.ord != null)); for (const w of D.worlds) D.wby.set(w.id, w);   // أعمال +18 بلا سلاسل
+  D.cw = cat.worlds || []; worldsSync();
   fillTypes();
   $('#sort').value = ui.sort; $('#names').value = ui.names; if (!LNAME[ui.list] && ui.list !== 'all') ui.list = 'watching'; if (hasLog() && ui.list !== 'all' && !inList(ui.list).length) ui.list = inList('watching').length ? 'watching' : 'all';
   placeChips(); renderAll(); liftVeil();
-  { const bar = $('.bar'), g = bar.querySelector('.gate'); new IntersectionObserver(([e]) => { const on = !e.isIntersecting; bar.classList.toggle('docked', on); g.tabIndex = on ? 0 : -1; g.setAttribute('aria-hidden', String(!on)); }).observe($('.top')); }
+  { const bar = $('.bar'), g = bar.querySelector('.gate'); new IntersectionObserver(([e]) => { const on = !e.isIntersecting; bar.classList.toggle('docked', on); g.tabIndex = on ? 0 : -1; g.setAttribute('aria-hidden', String(!on)); dockEye(on); }).observe($('.top')); }
   initSync(id => { if (id !== 'anime') return; load(); renderAll(true); if (open) { const box = $('#sheet-body .mine'); if (box) box.outerHTML = mineHTML(D.by.get(open)); drawXs(D.by.get(open)); } });
   route();
 } catch (err) { $('#grid').innerHTML = '<p class="load">تعذّر تحميل القائمة. حدّث الصفحة.</p>'; liftVeil(); console.error(err); }

@@ -13,8 +13,9 @@ import { ar } from './bidi.js?v=__BUILD__';
 import './zoom.js?v=__BUILD__';
 import './rail.js?v=__BUILD__'; // الشرائط الأفقية: السحب بالماوس والسهمان على طرفيها
 import { posMap, ord } from './pos.js?v=__BUILD__'; // خريطة «موقعها من سلسلتها» والعدد الترتيبي
-import { isOpen, setOpen, hides, covered, uncover, marks, markEl, showing, setShowing, drawEye, eyeBtn, cover } from './adult.js?v=__BUILD__'; // فلتر +18 (E65)
-import { ghToken, openKeys, repoOf } from './keys.js?v=__BUILD__';   // مفتاحا الموقع في هذا المتصفح، ونافذتهما
+import { isOpen, setOpen, hides, covered, uncover, marks, markEl, showing, setShowing, drawEye, eyeBtn, cover, dockEye } from './adult.js?v=__BUILD__'; // فلتر +18 (E65)
+import { ghToken, openKeys, repoOf, need } from './keys.js?v=__BUILD__';   // مفتاحا الموقع في هذا المتصفح، ونافذتهما
+import { accountsServer } from './site-config.js?v=__BUILD__';   // رابط خادم «حساباتي» من data/site.json
 import { addGames, removeGames } from './local-api.js?v=__BUILD__';   // الإضافة والحذف كتابةٌ في قائمة المستودع
 import { watchBuild, waitBuild, waiting } from './building.js?v=__BUILD__';   // لافتة «يُبنى الموقع» بعد الإيداع
 const BUILD = '__BUILD__', KEY = 'gamesg.progress', PEND = 'gamesg.pending', PASS = 'gamesg.pass', IGN = 'gamesg.ignored', STEAM = 'gamesg.steam', REM = 'gamesg.removed', ASK = 'gamesg.asked';
@@ -87,7 +88,7 @@ const SPRITE = `<svg width="0" height="0" style="position:absolute" aria-hidden=
 </defs></svg>`;
 
 // ---------- البيانات والسجل
-const D = { games: [], pool: new Map(), byId: new Map(), series: {}, plats: {}, fr: {}, films: null, built: null, stores: null, subs: null };
+const D = { games: [], pool: new Map(), byId: new Map(), series: {}, seriesAll: {}, plats: {}, fr: {}, films: null, built: null, stores: null, subs: null };
 let P = { games: {} };
 const load = () => { try { P = { games: {}, ...JSON.parse(store.get(KEY) || '{}') }; P.games ||= {}; if (P.dups && typeof P.dups !== 'object') delete P.dups; } catch { P = { games: {} }; } };
 load();
@@ -100,24 +101,28 @@ const ui = { list: 'all', q: '', plat: '', genre: '', sort: 'list', view: 'grid'
 // pool: كل ما عُرف من الألعاب. games وbyId: ما يظهر منها الآن: ألعاب +18 تدخلهما حين يُرفع الفلتر وحده (hides)، وrelist تعيد بناءهما عند التبديل
 const admit = g => { if (hides(g) || D.byId.has(g.id)) return false; D.games.push(g); D.byId.set(g.id, g); return true; };
 const register = g => { if (D.pool.has(g.id)) return false; D.pool.set(g.id, g); return admit(g); };
-function relist() { D.games = []; D.byId.clear(); for (const g of D.pool.values()) admit(g); stale(); }
+function relist() { D.games = []; D.byId.clear(); for (const g of D.pool.values()) admit(g); seriesView(); stale(); }
+// السلاسل كما بُنيت (seriesAll) وما يظهر منها الآن (series): أجزاء +18 فيها موسومة تظهر حين يُرفع الفلتر وحده، وما لا يبقى منه جزءان ليس سلسلة (E75)
+function seriesView() { D.series = {}; for (const [id, s] of Object.entries(D.seriesAll)) { const members = isOpen() ? s.members : s.members.filter(m => !m.adult); if (members.length >= 2) D.series[id] = members.length === s.members.length ? s : { ...s, members }; } }
+// جزء من سلسلة أو لعبة مرتبطة: يظهر؟ وغلافه مغطى؟ (أجزاء +18 كألعابها: تخفى والفلتر قائم، وغلافها مغطى حتى يُكشف)
+const shown = m => !!m && (!m.adult || isOpen()), veiled = m => !!m.adult && covered(m.id);
 // العين (site/adult.js) ترفع الفلتر أو تعيده في مكانها، بلا إعادة تحميل: الشبكة والقائمة الرئيسية والقادم والسلاسل والأعداد تُرسم من جديد
 function toggleEye() { setOpen(!isOpen()); relist(); drawEye(); if (sheet.open && openId && !D.byId.has(openId)) closeGame();
   if (slotId && !D.byId.has(slotId)) slotId = null; if (tonightId && !D.byId.has(tonightId)) tonightId = null;
   renderGrid(); renderMenu(false); soonHTML(); if (ui.view === 'series') $('#series').innerHTML = seriesHTML();
   toast(isOpen() ? 'رُفع الفلتر: تظهر الألعاب كلها.' : 'عاد الفلتر.'); }
-const merge = r => { Object.assign(D.series, r.series || {}); Object.assign(D.plats, r.plats || {}); Object.assign(D.fr, r.franchises || {}); };
+const merge = r => { Object.assign(D.seriesAll, r.series || {}); seriesView(); Object.assign(D.plats, r.plats || {}); Object.assign(D.fr, r.franchises || {}); };
 
 document.body.insertAdjacentHTML('beforeend', `${SPRITE}
 <header class="top"><a class="home" href="../" aria-label="العودة إلى البوابات">${miniDoor}<span>البوابات</span></a><h1>ألعابي</h1>
-  ${eyeBtn()}<button class="btn pri add" data-act="add">${ic('plus')}<span>أضف لعبة</span></button><p class="tally" id="tally"></p></header>
+  ${eyeBtn()}<button class="btn sec acc" data-act="accounts">${ic('pad')}<span>حساباتي</span></button><button class="btn pri add" data-act="add">${ic('plus')}<span>أضف لعبة</span></button><p class="tally" id="tally"></p></header>
 <div class="dupw" id="dup" hidden></div>
 <section class="mm" id="mm" aria-label="القائمة الرئيسية"><div class="mm-art" id="mm-art" aria-hidden="true"></div>
   <nav class="mm-menu" id="mm-menu" aria-label="قوائمي"></nav><div class="mm-slot" id="slot"></div></section>
 <section class="soon shut" id="soon" hidden aria-label="قادم في سلاسلك"><h2><button type="button" class="soon-b" id="soon-b" data-act="soon" aria-expanded="false" aria-controls="soon-reel"></button></h2><div class="reel" id="soon-reel" hidden></div></section>
 <nav class="bar" aria-label="البحث والتصفية"><div class="row"><a class="gate" href="../" aria-label="العودة إلى البوابات" aria-hidden="true" tabindex="-1"><span class="gate-em">${miniDoor}</span><span class="gate-t">البوابات</span></a>
   <label class="search">${ic('search')}<span class="sr">ابحث في ألعابي</span><input id="q" type="search" placeholder="ابحث: لعبة، مطوّر، سلسلة، سنة" autocomplete="off" enterkeyhint="search"></label>
-  <div class="tabs" role="group" aria-label="طريقة العرض"><button data-act="view" data-v="grid" aria-pressed="true">الألعاب</button><button data-act="view" data-v="series" aria-pressed="false">السلاسل</button></div></div>
+  <div class="tabs" role="group" aria-label="طريقة العرض"><button data-act="view" data-v="grid" aria-pressed="true">الألعاب</button><button data-act="view" data-v="series" aria-pressed="false">السلاسل</button></div>${eyeBtn(true)}</div>
   <div class="chips" id="chips"></div></nav>
 <div class="dupw at-list" id="dupbar" hidden></div>
 <p class="count" id="count" aria-live="polite"></p>
@@ -132,6 +137,8 @@ document.body.insertAdjacentHTML('beforeend', `${SPRITE}
   <ul class="sug" id="add-sug" role="listbox" aria-label="اقتراحات" hidden></ul></div>
   <button class="btn pri" type="submit">ابحث عنها</button><p class="msg" id="add-msg" aria-live="polite"></p><div class="cands" id="cands"></div>
   <p class="hint">اللعبة تظهر هنا فوراً، وتكتمل معلوماتها (منصاتها وسلسلتها وعالمها وما اقتُبس منها) حين يُبنى الموقع بها من <bdi dir="ltr">IGDB</bdi> و<bdi dir="ltr">Wikidata</bdi>، خلال دقائق. والإضافة تحتاج رمز <bdi dir="ltr">GitHub</bdi> على هذا الجهاز: <button type="button" class="meant-btn" data-keys-open>مفاتيح الموقع</button></p></form></dialog>
+<dialog id="acc" aria-labelledby="acc-h"><button class="close" data-act="close-acc" aria-label="إغلاق">${ic('x')}</button><div class="scroll" id="acc-body"></div></dialog>
+<dialog id="inbox" aria-labelledby="ib-h"><div class="ib" id="ib"></div></dialog>
 <div class="qm" id="qm" role="menu" hidden></div>
 <div class="toast" id="toast" role="status"></div>`);
 portalBack('games');
@@ -272,18 +279,20 @@ const fits = (gs, ms) => ms.filter(m => gs.includes(m)).length;
 const moodFirst = gs => { const hit = gs.filter(x => moods.includes(x)); return [...hit, ...gs.filter(x => !moods.includes(x))].slice(0, Math.min(3, Math.max(2, hit.length))); };
 const inL = s => D.games.filter(g => lst(g.id) === s);
 const byAt = list => [...list].sort((a, b) => (rec(b.id).at || '').localeCompare(rec(a.id).at || '') || (b.ord ?? 0) - (a.ord ?? 0));
-const tonightOk = g => !g.adult && lst(g.id) === 'new' && !soon(g) && g.status !== 'cancelled';   // والاقتراح لا يختار لعبة +18
+const tonightOk = g => (!g.adult || isOpen()) && lst(g.id) === 'new' && !soon(g) && g.status !== 'cancelled';   // وألعاب +18 تدخل الاقتراح والعين مفتوحة وتخرج منه حين تُغلق (E78)، وصورتها لا تظهر حتى تُكشف
 function menuHTML() { return ORDER.map(k => { const n = k === 'all' ? D.games.length : inL(k).length, L = LISTS[k];
   return `<button type="button" class="mi m-${k}" data-act="list" data-v="${k}" aria-pressed="${ui.list === k}"><span class="cur" aria-hidden="true">${ic('play')}</span><span class="mt"><b>${k === 'all' ? 'كل الألعاب' : L.t}</b><small>${k === 'all' ? 'قائمتك كاملة' : L.s}</small></span><i class="n">${n}</i></button>`; }).join(''); }
 function moodHTML() { const n = {}; for (const g of D.games) if (tonightOk(g)) for (const x of g.genres || []) n[x] = (n[x] || 0) + 1; moods = moods.filter(m => n[m]);
   const all = D.games.filter(tonightOk).length, c = (v, t, k) => `<button type="button" class="chip" data-act="mood" data-g="${esc(v)}" aria-pressed="${String(v ? moods.includes(v) : !moods.length)}">${esc(t)}<small>${k}</small></button>`;
   const best = moods.length >= 2 ? fits(D.byId.get(tonightId)?.genres || [], moods) : 0;
-  return all < 2 ? '' : `<div class="mood" role="group" aria-label="مزاجك الليلة"><span class="mood-l">مزاجك الليلة</span><div class="mood-c" data-drag>${c('', 'أي نوع', all)}${Object.entries(n).sort((a, b) => b[1] - a[1]).map(([x, k]) => c(x, x, k)).join('')}</div></div>
-${moods.length >= 2 ? `<p class="mood-hint">${best === moods.length ? `لعبة تجمع ${moods.map(esc).join(' و')}.` : best ? `لا لعبة في قائمتك تجمعها كلها، فهذه أقربها: تجمع ${best} من ${moods.length}.` : 'لا لعبة في قائمتك من هذه الأنواع.'}</p>` : ''}`; }
+  // المختار أولاً، فلا يبقى منه شيء خارج الشريط لا يُرى (E76)؛ وأقرب ما وُجد يقال ما فيه منه وما ليس فيه بأسمائها
+  const gs = D.byId.get(tonightId)?.genres || [], has = moods.filter(m => gs.includes(m)), miss = moods.filter(m => !gs.includes(m));
+  return all < 2 ? '' : `<div class="mood" role="group" aria-label="مزاجك الليلة"><span class="mood-l">مزاجك الليلة</span><div class="mood-c" data-drag>${c('', 'أي نوع', all)}${[...moods.map(m => [m, n[m]]), ...Object.entries(n).filter(([x]) => !moods.includes(x)).sort((a, b) => b[1] - a[1])].map(([x, k]) => c(x, x, k)).join('')}</div></div>
+${moods.length >= 2 ? `<p class="mood-hint">${best === moods.length ? `لعبة تجمع ${moods.map(esc).join(' و')}.` : best ? `لا لعبة في قائمتك تجمعها كلها، فهذه أقربها: تجمع ${best} من ${moods.length}، فيها ${has.map(esc).join(' و')} وليس فيها ${miss.map(esc).join(' ولا ')}.` : 'لا لعبة في قائمتك من هذه الأنواع.'}</p>` : ''}`; }
 function pickTonight(fresh) { const ok = g => tonightOk(g), all = D.games.filter(ok);
   let best = 0; for (const g of all) best = Math.max(best, fits(g.genres || [], moods)); const good = g => ok(g) && (!moods.length || !best || fits(g.genres || [], moods) === best);
   const pool = all.filter(g => good(g) && g.id !== tonightId);
-  if (!fresh && tonightId && good(D.byId.get(tonightId) || {})) return D.byId.get(tonightId);
+  if (!fresh && tonightId && tonightOk(D.byId.get(tonightId) || {}) && good(D.byId.get(tonightId) || {})) return D.byId.get(tonightId);
   const from = pool.length ? pool : all.filter(good); if (!from.length) return null;
   const strong = from.filter(g => (g.critic || g.users || 0) >= 80), list = strong.length >= 4 ? strong : from, g = list[Math.floor(Math.random() * list.length)]; tonightId = g.id; return g; }
 function featured() { const k = ui.list; if (!D.games.length) return null;
@@ -293,7 +302,7 @@ function slotHTML(g) { const k = ui.list, r = g ? rec(g.id) : {};
   if (!D.games.length) return waiting('games') ? `<p class="lbl">مكتبتك في الطريق</p><h2>يُبنى الموقع بألعابك</h2><p class="meta">تظهر هنا بأغلفتها ومنصاتها وسلاسلها خلال دقائق، ولا يلزم أن تبقى الصفحة مفتوحة.</p>
 <div class="acts"><button class="btn sec" data-act="add">${ic('plus')}أضف لعبة أخرى</button></div>`
     : `<p class="lbl">ابدأ من هنا</p><h2>مكتبتك فارغة</h2><p class="meta">أضف لعبة باسمها، بالعربي أو بالإنجليزي، واختر وضعها عندك: تلعبها الآن، أو ستلعبها، أو ختمتها، أو شاهدتها.</p>
-<div class="acts"><button class="btn pri" data-act="add">${ic('plus')}أضف لعبة</button></div>`;
+<div class="acts"><button class="btn pri" data-act="add">${ic('plus')}أضف لعبة</button><button class="btn sec" data-act="accounts">${ic('pad')}اسحب من حساباتي</button></div>`;
   if (!g) return `<p class="lbl">${k === 'new' ? 'ماذا ألعب الليلة؟' : LISTS[k].t}</p><h2>${k === 'play' ? 'لا شيء تلعبه الآن' : k === 'done' ? 'لم تختم لعبة بعد' : k === 'seen' ? 'لم تشاهد لعبة بعد' : 'لا ألعاب تنتظر'}</h2>
 <p class="meta">${k === 'new' ? 'ما في «لعبة جديدة» صدر كله وختمته، أو لا شيء فيه بهذا المزاج.' : 'انقل إليها لعبة من بطاقتها، أو من زر ⋮ تحت غلافها.'}</p>${k === 'new' ? moodHTML() : ''}`;
   const plat = r.on ? abbr(r.on) : '', lbl = { play: 'تابع من حيث توقفت', new: 'ماذا ألعب الليلة؟', done: 'آخر شارة نهاية', seen: 'آخر ما شاهدته', all: 'من قائمتك' }[k];
@@ -308,7 +317,7 @@ let artFor = null;
 function renderMenu(swap) { $('#mm-menu').innerHTML = menuHTML(); const g = featured(); slotId = g?.id ?? null; const slot = $('#slot'); slot.innerHTML = slotHTML(g);
   $('#mm').dataset.list = ui.list;
   if (swap && !calm) { slot.classList.remove('swap'); void slot.offsetWidth; slot.classList.add('swap'); }
-  const src = g && !g.adult ? (g.art ? img(g.art, innerWidth * devicePixelRatio > 1400 ? '1080p' : '720p') : g.shots?.[0] ? img(g.shots[0], '720p') : g.cover ? img(g.cover, 'cover_big_2x') : null) : null;
+  const src = g && !(g.adult && covered(g.id)) ? (g.art ? img(g.art, innerWidth * devicePixelRatio > 1400 ? '1080p' : '720p') : g.shots?.[0] ? img(g.shots[0], '720p') : g.cover ? img(g.cover, 'cover_big_2x') : null) : null;
   if (src === artFor) return; artFor = src; const box = $('#mm-art'), old = box.querySelector('img:not(.out)');
   if (!src) { old?.classList.add('out'); setTimeout(() => old?.remove(), 600); return; }
   const im = new Image(); im.alt = ''; im.decoding = 'async'; im.className = g.art || g.shots?.[0] ? '' : 'soft'; im.src = src;
@@ -320,7 +329,7 @@ function setList(k, focus) { ui.list = k; store.set('games.list', k); $$('#mm-me
 // القسم مصغَّر إلى سطر واحد (عددها، وأقربها بعدّه) ما لم يفتحه صاحبه بزرّه («افتحها» ثم «صغّرها»)، واختياره يُحفظ على الجهاز. وشريطه لا يُرسم ولا تُحمَّل أغلفته وهو مصغَّر
 let soonOpen = store.get('games.soon') === 'open';
 function upcoming() { const out = new Map();
-  for (const g of D.games) { if (soon(g)) out.set(g.id, g); for (const sid of g.series || []) for (const m of D.series[sid]?.members || []) if (soon(m) && m.status !== 'cancelled' && !out.has(m.id)) out.set(m.id, D.byId.get(m.id) || m); }
+  for (const g of D.games) { if (soon(g)) out.set(g.id, g); for (const sid of g.series || []) for (const m of D.series[sid]?.members || []) if (soon(m) && m.status !== 'cancelled' && !out.has(m.id) && shown(m)) out.set(m.id, D.byId.get(m.id) || m); }
   return [...out.values()].sort((a, b) => (exact(b) - exact(a)) || (a.date || '9999').localeCompare(b.date || '9999')); }
 function soonHTML() { const list = upcoming(), box = $('#soon'), btn = $('#soon-b'), reel = $('#soon-reel'), o = list[0]; box.hidden = !list.length; if (!o) return;
   // أقربها: المؤرَّخة بعدّها الحي (أيامه، ثم ساعاته في يومها الأخير)، وغير المؤرَّخة بموعدها التقريبي
@@ -328,7 +337,7 @@ function soonHTML() { const list = upcoming(), box = $('#soon'), btn = $('#soon-
   btn.innerHTML = `<span class="sb-t">قادم في سلاسلك</span><span class="sb-n">${list.length}</span><span class="sb-near"><small>أقربها</small><b dir="ltr">${esc(o.title)}</b>${near}</span><span class="sb-go"><span>${soonOpen ? 'صغّرها' : 'افتحها'}</span>${ic('chev')}</span>`;
   btn.setAttribute('aria-expanded', String(soonOpen)); box.classList.toggle('shut', !soonOpen); reel.hidden = !soonOpen;
   reel.innerHTML = !soonOpen ? '' : list.map(o => { const mine = D.byId.has(o.id);
-    return `<button class="part${mine ? '' : ' out'}" data-act="${mine ? 'open' : 'peek'}" data-id="${o.id}" data-q="${esc(o.title)}"${marks(o.id, o.adult)}><span class="p">${coverImg(o.cover, '150px') || cart(o)}${chip(o)}</span><b dir="ltr">${esc(o.title)}</b><small>${mine ? 'في قائمتك' : 'من سلسلة ' + esc(seriesOfMember(o.id)?.name || '')}</small></button>`; }).join(''); }
+    return `<button class="part${mine ? '' : ' out'}" data-act="${mine ? 'open' : 'peek'}" data-id="${o.id}" data-q="${esc(o.title)}"${marks(o.id, o.adult)}><span class="p${veiled(o) && o.cover ? ' x18' : ''}">${coverImg(o.cover, '150px', true, veiled(o)) || cart(o)}${chip(o)}</span><b dir="ltr">${esc(o.title)}</b><small>${mine ? 'في قائمتك' : 'من سلسلة ' + esc(seriesOfMember(o.id)?.name || '')}</small></button>`; }).join(''); }
 function soonFlip() { soonOpen = !soonOpen; store.set('games.soon', soonOpen ? 'open' : 'shut'); soonHTML();
   if (soonOpen && !calm) $('#soon-reel').animate?.([{ opacity: 0, transform: 'translateY(-8px)' }, { opacity: 1, transform: 'none' }], { duration: 260, easing: 'cubic-bezier(.2,.8,.2,1)' }); }
 const seriesOfMember = id => Object.values(D.series).find(s => s.members.some(m => m.id === id) && s.members.some(m => D.byId.has(m.id)));
@@ -340,13 +349,13 @@ function seriesHTML() { const q = ui.q && fold(ui.q), gs = groups().filter(s => 
   if (!gs.length) return `<p class="empty">${D.games.length ? 'لا سلسلة تطابق البحث، أو لا سلاسل لألعابك بعد.' : 'أضف ألعاباً لترى سلاسلها هنا.'}</p>`;
   return gs.map(s => { const mine = s.members.filter(m => D.byId.has(m.id)), done = mine.filter(m => lst(m.id) === 'done').length;
     return `<section class="fr"><header><h3 dir="ltr">${esc(s.name)}</h3><span>${nGames(s.members.length)}${s.size > s.members.length ? ' رئيسية' : ''} · ${mine.length} في قائمتك${done ? ` · ختمت ${done}` : ''}${s.story ? ' · لها ترتيب قصة رسمي' : ''}</span></header>
-<div class="reel">${s.members.map((m, i) => { const g = D.byId.get(m.id); return `<button class="part${g ? ' s-' + lst(m.id) : ' out'}" data-act="${g ? 'open' : 'peek'}" data-id="${m.id}" data-q="${esc(m.title)}${m.year ? ' ' + m.year : ''}">
-<span class="p">${coverImg(m.cover, '118px') || cart(m)}<span class="n">${i + 1}</span>${g ? badge(g) : ''}${chip(m)}</span><b dir="ltr">${esc(m.title)}</b><small>${[TYPES[m.type], yearOrWhen(m), g ? '' : 'خارج قائمتك'].filter(Boolean).map(esc).join(' · ')}</small></button>`; }).join('')}</div></section>`; }).join(''); }
+<div class="reel">${s.members.map((m, i) => { const g = D.byId.get(m.id); return `<button class="part${g ? ' s-' + lst(m.id) : ' out'}" data-act="${g ? 'open' : 'peek'}" data-id="${m.id}" data-q="${esc(m.title)}${m.year ? ' ' + m.year : ''}"${marks(m.id, m.adult)}>
+<span class="p${veiled(m) && m.cover ? ' x18' : ''}">${coverImg(m.cover, '118px', true, veiled(m)) || cart(m)}<span class="n">${i + 1}</span>${g ? badge(g) : ''}${chip(m)}</span><b dir="ltr">${esc(m.title)}</b><small>${[TYPES[m.type], yearOrWhen(m), g ? '' : 'خارج قائمتك'].filter(Boolean).map(esc).join(' · ')}</small></button>`; }).join('')}</div></section>`; }).join(''); }
 function setView(v) { ui.view = v; $$('.tabs button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.v === v))); $('#grid').hidden = v !== 'grid'; $('#series').hidden = v !== 'series'; $('#chips').hidden = v !== 'grid';
   if (v === 'series') $('#series').innerHTML = seriesHTML(); apply(false); }
 
 // ---------- بطاقة اللعبة
-const sheet = $('#sheet'), addDlg = $('#add');
+const sheet = $('#sheet'), addDlg = $('#add'), accDlg = $('#acc'), ibDlg = $('#inbox');
 let openId = null;
 const ext = (name, url, sub = '') => `<a href="${esc(url)}" target="_blank" rel="noopener"><b dir="ltr">${esc(name)}</b>${sub ? `<small>${sub}</small>` : ''}</a>`;
 function saveHTML(g) { const r = rec(g.id), s = r.s || 'new', opts = s === 'seen' ? WATCH : [...new Set([...platsOf(g), ...(r.on && !WATCH.includes(r.on) ? [r.on] : [])])];
@@ -366,7 +375,7 @@ function ttbHTML(g) { const t = g.ttb, mine = rec(g.id).h; if (!t || !(t.h || t.
   return `<section class="sec"><h3>كم تأخذ لتختمها</h3><ul class="ttb">${bar('h', 'القصة بسرعة', t.h)}${bar('n', 'القصة بتأنٍّ', t.n)}${bar('c', 'كل شيء فيها', t.c)}${mine ? bar('m', 'لعبتها أنت', mine) : ''}</ul>
 <p class="note">متوسطات لاعبي <bdi dir="ltr">IGDB</bdi>${t.count ? ` من ${t.count} إجابة` : ''}. وللتفصيل: ${ext('HowLongToBeat', 'https://howlongtobeat.com/?q=' + encodeURIComponent(g.title))}</p></section>`; }
 function orderRow(m, i, here) { const g = D.byId.get(m.id), s = g ? lst(m.id) : '';
-  return `<li data-n="${i + 1}" class="${[m.id === here ? 'here' : '', g ? 's-' + s : 'out'].join(' ')}"><span class="th">${m.cover ? `<img loading="lazy" alt="" src="${img(m.cover, 'cover_small')}">` : ''}</span>
+  return `<li data-n="${i + 1}" class="${[m.id === here ? 'here' : '', g ? 's-' + s : 'out'].join(' ')}"${marks(m.id, m.adult)}><span class="th${veiled(m) && m.cover ? ' x18' : ''}">${m.cover ? veiled(m) ? cover(`<img loading="lazy" alt="" src="${img(m.cover, 'cover_small')}">`) : `<img loading="lazy" alt="" src="${img(m.cover, 'cover_small')}">` : ''}</span>
 <span class="t"><b dir="ltr">${esc(m.title)}</b><small>${[TYPES[m.type], yearOrWhen(m), PK[g?.place?.k]].filter(Boolean).map(esc).join(' · ')}</small></span><span class="st">${g ? (s === 'new' ? 'في قائمتك' : esc(LISTS[s].badge)) : 'خارج قائمتك'}${exact(m) ? `<i class="cd-mini" data-until="${m.date}" data-now="اليوم"><span class="ck" aria-hidden="true">${clock(m.date, 'اليوم')}</span></i>` : ''}</span>
 ${m.id === here ? '' : `<button class="go" data-act="${g ? 'open' : 'peek'}" data-id="${m.id}" data-q="${esc(m.title)}${m.year ? ' ' + m.year : ''}" aria-label="${g ? 'افتح' : 'اعرض'} ${esc(m.title)}"></button>`}</li>`; }
 function seriesSec(g) { const list = (g.series || []).map(id => ({ id, ...D.series[id] })).filter(s => s.members?.length);
@@ -381,8 +390,8 @@ function seriesSec(g) { const list = (g.series || []).map(id => ({ id, ...D.seri
       : `<ol class="order">${s.members.map((m, i) => orderRow(m, i, g.id)).join('')}</ol><p class="note">الأجزاء الرئيسية بترتيب صدورها من <bdi dir="ltr">IGDB</bdi>${s.size > s.members.length ? '، بلا الإضافات والحزم والمنافذ' : ''}، والمعلن الذي لم يصدر في آخرها. لا نعرف ترتيب قصة يوصي به صنّاعها لهذه السلسلة؛ إن وُجد بمصدر رسمي أُضيف هنا.</p>`;
     return `<section class="sec"><h3>السلسلة: <bdi dir="ltr">${esc(s.name)}</bdi></h3>${uni}${fr.length ? `<p class="uni">من امتياز ${fr.join('، ')}.</p>` : ''}${body}</section>`; }).join(''); }
 const REL = [['parent_game', 'اللعبة الأصل'], ['version_parent', 'اللعبة الأصل'], ['remakes', 'إعادة صنعها'], ['remasters', 'إعادة إصدارها'], ['expansions', 'توسعات'], ['standalone_expansions', 'توسعات مستقلة'], ['dlcs', 'محتوى إضافي'], ['ports', 'منافذ لمنصات أخرى']];
-function relSec(g) { const r = g.rel || {}, rows = REL.filter(([k]) => r[k]).map(([k, t]) => { const list = Array.isArray(r[k]) ? r[k] : [r[k]];
-  return `<div class="relg"><b>${t}</b><div class="reel">${list.map(m => { const own = D.byId.get(m.id); return `<button class="part${own ? '' : ' out'}" data-act="${own ? 'open' : 'peek'}" data-id="${m.id}" data-q="${esc(m.title)}"><span class="p">${coverImg(m.cover, '100px') || cart(m)}${chip(m)}</span><b dir="ltr">${esc(m.title)}</b><small>${esc(yearOrWhen(m))}</small></button>`; }).join('')}</div></div>`; }).join('');
+function relSec(g) { const r = g.rel || {}, rows = REL.map(([k, t]) => [k, t, (Array.isArray(r[k]) ? r[k] : r[k] ? [r[k]] : []).filter(shown)]).filter(([, , list]) => list.length).map(([k, t, list]) => {
+  return `<div class="relg"><b>${t}</b><div class="reel">${list.map(m => { const own = D.byId.get(m.id); return `<button class="part${own ? '' : ' out'}" data-act="${own ? 'open' : 'peek'}" data-id="${m.id}" data-q="${esc(m.title)}"${marks(m.id, m.adult)}><span class="p${veiled(m) && m.cover ? ' x18' : ''}">${coverImg(m.cover, '100px', true, veiled(m)) || cart(m)}${chip(m)}</span><b dir="ltr">${esc(m.title)}</b><small>${esc(yearOrWhen(m))}</small></button>`; }).join('')}</div></div>`; }).join('');
   return rows ? `<section class="sec"><h3>إضافاتها وإصداراتها الأخرى</h3>${rows}</section>` : ''; }
 function adaptSec(g) { if (!g.from?.length && !g.into?.length) return '';
   const item = (w, dir) => { const name = w.ar || w.en, film = w.tmdb && D.films?.has(w.tmdb), sub = [XKIND[w.kind], w.year].filter(Boolean).join(' · ');
@@ -396,11 +405,10 @@ function platsSec(g) { if (!g.plats?.length) return ''; const at = new Map((g.da
     return `<li class="f-${famOf(c)}"><b dir="ltr">${esc(abbr(c))}</b>${when ? `<small>${when}</small>` : ''}</li>`; }).join('')}</ul>${g.also?.length ? `<p class="note">ولها نسخ بالاسم نفسه على <bdi dir="ltr">${g.also.map(c => esc(abbr(c))).join(' · ')}</bdi>، في سجلات أخرى من <bdi dir="ltr">IGDB</bdi>.</p>` : ''}</section>`; }
 // ---------- أين تُلعب على الكمبيوتر، وهل هي مجانية الآن. الصفوف من البناء (g.pc، scripts/lib-stores.mjs): متاجرها ومشغّلاتها، وكل صف يحمل حاله
 // (free: مجانية اللعب أو هدية لمدة، pass: ضمن PC Game Pass، off: ليست في متجر السعودية، gone: لا تُباع فيه الآن). وما بلا g.pc متاجره من روابط IGDB وحدها، وهو ثلاثة،
-// ولكل منها جملته الصادقة: ما أُضيف للتو (يفحصه البناء الذي تطلقه الإضافة)، وبطاقة اطلاع للعبة ليست في المكتبة (لا يفحصها البناء ما لم تُضف)، ولعبة +18 في المكتبة
-// (لا تُفحص متاجرها أصلاً، فلا تدخل أسماؤها تقرير البناء ولا سجله). وكانت الأوليان تقولان «تُفحص في البناء القادم» فيظنها صاحب الموقع عملاً لم يكتمل
+// ولكل منها جملته الصادقة: ما أُضيف للتو (يفحصه البناء الذي تطلقه الإضافة)، وبطاقة اطلاع للعبة ليست في المكتبة (لا يفحصها البناء ما لم تُضف).
+// ولعبة +18 في المكتبة تُفحص كغيرها (E75). وكانت الأوليان تقولان «تُفحص في البناء القادم» فيظنها صاحب الموقع عملاً لم يكتمل
 const pcWait = (g, pv, linked) => { const igdb = '<bdi dir="ltr">IGDB</bdi>', add = ' إن أضفتها فُحصت في البناء القادم.';
   if (pv) return linked ? `ليست في مكتبتك، فهذه روابط متاجرها في ${igdb} كما هي، بلا فحص لمجانيتها.${add}` : `ليست في مكتبتك، فمتاجرها لا تُفحص، وليس لها في ${igdb} رابط متجر.${add}`;
-  if (g.adult) return linked ? `متاجر هذه اللعبة لا تُفحص: هذه روابطها في ${igdb} كما هي، بلا فحص لمجانيتها.` : `متاجر هذه اللعبة لا تُفحص، وليس لها في ${igdb} رابط متجر.`;
   return linked ? `المتاجر من روابط ${igdb}. المجانية وبقية المشغّلات تُفحص في البناء القادم.` : 'متاجرها على الكمبيوتر تُفحص في البناء القادم.'; };
 const STN = { steam: 'Steam', epic: 'Epic Games Store', gog: 'GOG', xbox: 'Xbox', battlenet: 'Battle.net', ea: 'EA app', ubi: 'Ubisoft Connect', rockstar: 'Rockstar Games Launcher', itch: 'itch.io' }, PCS = ['steam', 'epic', 'gog'], LAUNCH = ['battlenet', 'ea', 'ubi', 'rockstar'];
 const DAYS = ['الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
@@ -434,8 +442,8 @@ function pcSec(g, pv) { if (!g.plats?.length) return '';
 // بطاقتان مضيئتان لما هي ضمنه، وخافتتان لما ليست فيه، مع السبب (ليست ضمنه الآن، أو لم تصدر على منصاته). ما أُضيف للتو يُفحص في البناء القادم
 const PSK = { extra: 'في كتالوج الألعاب', ubi: 'في كلاسيكيات <bdi dir="ltr">Ubisoft+</bdi>', deluxe: 'في الكلاسيكيات', month: 'من ألعاب الشهر: أضفها إلى مكتبتك قبل أن ينتهي شهرها' };
 const ONN = { xbox: 'Xbox', pc: 'الكمبيوتر', ps5: 'PS5', ps4: 'PS4', ps3: 'PS3', ps2: 'PS2', ps1: 'PS1', psp: 'PSP', vita: 'PS Vita', psvr: 'PS VR', psvr2: 'PS VR2' };
-// ولعبة +18 لا تُفحص اشتراكاتها أصلاً (كمتاجرها)، فلا يُعرض القسم بدل أن يقول «ليست ضمنه الآن» بلا فحص
-function subsSec(g, pv) { if (pv || g.adult || !g.plats?.length) return '';
+// ولعبة +18 تُفحص اشتراكاتها كغيرها (E75)
+function subsSec(g, pv) { if (pv || !g.plats?.length) return '';
   const fams = new Set([...g.plats, ...(g.also || [])].map(famOf)), checked = !!D.subs && g.src !== 'added', s = g.subs || {};
   const on = l => andAr(l.map(c => c === 'pc' ? ONN.pc : `<bdi dir="ltr">${esc(ONN[c] || c)}</bdi>`));
   const how = (k, r) => [k === 'gp' ? [r.on.length ? `تلعبها على ${on(r.on)}` : '', r.ea ? 'عبر <bdi dir="ltr">EA Play</bdi> المضمّن فيه' : ''].filter(Boolean).join(' ') : [PSK[r.k] || '', r.on.length ? `على ${on(r.on)}` : ''].filter(Boolean).join('، '),
@@ -449,7 +457,10 @@ function subsSec(g, pv) { if (pv || g.adult || !g.plats?.length) return '';
     : 'أُضيفت للتو، فاشتراكاتها تُفحص في البناء القادم.';
   return `<section class="sec subsec"><h3>في الاشتراكات</h3><div class="mems">${mem('gp', 'Game Pass Ultimate', s.gp, gpOff)}${mem('ps', 'PS Plus Deluxe', s.ps, psOff)}</div><p class="note">${note}</p></section>`; }
 const precOfHuman = h => { h = String(h || '').trim(); return !h ? null : /^tb[ad]$/i.test(h) ? 'tbd' : /^q[1-4]\s+\d{4}$/i.test(h) ? 'q' : /^\d{4}$/.test(h) ? 'y' : /^[a-z]{3,}\.?\s+\d{4}$/i.test(h) ? 'm' : 'd'; };
+// لقطات لعبة +18 لم تُكشف: مصغّرة كل لقطة وحدها مغطاة بعين البوابة ولا تُكبَّر، حتى يُكشف غلافها أو تُكشف الصور كلها (E75)
 function mediaSec(g) { const shots = (g.shots || []).slice(0, 8), vids = g.videos || []; if (!shots.length && !vids.length) return '';
+  if (shots.length && g.adult && covered(g.id)) return `<section class="sec"><h3>من داخل اللعبة</h3><div class="reel shots">${shots.map(s => `<span class="shot x18">${cover(`<img loading="lazy" decoding="async" alt="" src="${img(s, 'thumb')}">`)}</span>`).join('')}</div>
+${vids.length ? `<div class="links vids">${vids.map(v => ext(v.name || 'Trailer', 'https://www.youtube.com/watch?v=' + v.id, 'عرض على يوتيوب')).join('')}</div>` : ''}</section>`;
   return `<section class="sec"><h3>من داخل اللعبة</h3>${shots.length ? `<div class="reel shots" data-zoom-set>${shots.map((s, i) => `<button type="button" class="shot" data-zoom="${img(s, '1080p')}" data-zoom-title="${esc(g.title)}" aria-label="كبّر اللقطة ${i + 1}"><img loading="lazy" decoding="async" alt="" src="${img(s, 'screenshot_med')}" srcset="${img(s, 'screenshot_med')} 569w, ${img(s, 'screenshot_big')} 889w" sizes="260px"></button>`).join('')}</div>` : ''}
 ${vids.length ? `<div class="links vids">${vids.map(v => ext(v.name || 'Trailer', 'https://www.youtube.com/watch?v=' + v.id, 'عرض على يوتيوب')).join('')}</div>` : ''}</section>`; }
 const SITEN = { steam: ['Steam', 'المتجر'], psstore: ['PlayStation Store', 'المتجر'], xstore: ['Microsoft Store', 'المتجر'], eshop: ['Nintendo eShop', 'المتجر'], epic: ['Epic Games', 'المتجر'], gog: ['GOG', 'المتجر'], appstore: ['App Store', 'المتجر'], gplay: ['Google Play', 'المتجر'], wiki: ['Wikipedia', 'الموسوعة'], official: ['الموقع الرسمي', ''] };
@@ -466,12 +477,12 @@ async function sheetHTML(g, pv) { if (g.from?.some(w => w.tmdb) || g.into?.some(
   const art = g.art || g.shots?.[0], facts = [TYPES[g.type], soon(g) ? (exact(g) ? 'قادمة' : whenText(g)) : g.year && `<bdi>${g.year}</bdi>`, g.early && 'وصول مبكر', g.dev?.length && `<bdi dir="ltr">${esc(g.dev.slice(0, 2).join(', '))}</bdi>`,
     g.critic && `<span class="rate">النقاد <bdi>${g.critic}</bdi></span>`, g.users && `<span class="rate">اللاعبون <bdi>${g.users}</bdi></span>`, g.status === 'cancelled' && 'أُلغيت'].filter(Boolean);
   const story = aboutSec(g, pv ? {} : (await texts())[g.id] || {}, pv);
-  return `<div class="sh-hero">${art ? `<img alt="" src="${img(art, '720p')}" srcset="${img(art, '720p')} 1280w, ${img(art, '1080p')} 1920w" sizes="(max-width:900px) 100vw, 900px">` : ''}</div>
+  return `<div class="sh-hero">${art && !(g.adult && covered(g.id)) ? `<img alt="" src="${img(art, '720p')}" srcset="${img(art, '720p')} 1280w, ${img(art, '1080p')} 1920w" sizes="(max-width:900px) 100vw, 900px">` : ''}</div>
 <div class="sh-head">${hid(g) ? `<button type="button" class="cover x18" data-act="bare" data-id="${g.id}" aria-label="أظهر غلاف ${esc(g.title)}">${coverImg(g.cover, '180px', false, true, 'اضغط لإظهاره')}</button>`
   : g.cover ? `<button type="button" class="cover" data-zoom="${img(g.cover, '1080p')}" data-zoom-title="${esc(g.title)}" aria-label="كبّر غلاف ${esc(g.title)}">${coverImg(g.cover, '180px', false)}</button>` : `<div class="cover">${cart(g)}</div>`}
 <div class="txt"><h2 dir="ltr">${esc(g.title)}</h2>${g.titleAr ? `<p class="ar">${esc(g.titleAr)}</p>` : ''}<p class="facts">${facts.map(x => `<span>${x}</span>`).join('')}</p><div class="tags">${(g.genres || []).map(x => `<span>${esc(x)}</span>`).join('')}${(g.modes || []).slice(0, 2).map(x => `<span class="m">${esc(x)}</span>`).join('')}</div>${!pv && subsOf(g).length ? `<p class="seal inl">${lamps(g)}<span>ضمن اشتراكك: تلعبها بلا ثمن${g.subs.gp?.out ? '، وتغادر <bdi dir="ltr">Game Pass</bdi> قريباً' : ''}</span></p>` : ''}</div></div>
-${g.adult || g.pending ? '' : chainHTML(g)}${pv ? `<section class="save pv">${twinHTML(g, true)}<h3>أضفها إلى مكتبتي</h3><div class="lists">${['play', 'new', 'done', 'seen'].map(k => `<button type="button" class="li m-${k}" data-act="pv-add" data-v="${k}" data-igdb="${g.id}">${listBtn(k)}</button>`).join('')}</div><p class="note">ليست في قائمتك. هذه بطاقة للاطلاع، ومعلوماتها آلية من <bdi dir="ltr">IGDB</bdi>.</p></section>` : saveHTML(g)}
-${g.pending ? '<section class="sec"><p class="ask">أُضيفت الآن من فهرس الألعاب: منصاتها وسلسلتها وعالمها ونبذتها تكتمل حين يُبنى الموقع بها، خلال دقائق.</p></section>' : g.adult ? '' : g.src === 'added' ? '<section class="sec"><p class="ask">أُضيفت بزر «أضف لعبة»: معلوماتها آلية من <bdi dir="ltr">IGDB</bdi>، وعالمها واقتباساتها تكتمل في البناء القادم.</p></section>' : ''}
+${g.pending ? '' : chainHTML(g)}${pv ? `<section class="save pv">${twinHTML(g, true)}<h3>أضفها إلى مكتبتي</h3><div class="lists">${['play', 'new', 'done', 'seen'].map(k => `<button type="button" class="li m-${k}" data-act="pv-add" data-v="${k}" data-igdb="${g.id}">${listBtn(k)}</button>`).join('')}</div><p class="note">ليست في قائمتك. هذه بطاقة للاطلاع، ومعلوماتها آلية من <bdi dir="ltr">IGDB</bdi>.</p></section>` : saveHTML(g)}
+${g.pending ? '<section class="sec"><p class="ask">أُضيفت الآن من فهرس الألعاب: منصاتها وسلسلتها وعالمها ونبذتها تكتمل حين يُبنى الموقع بها، خلال دقائق.</p></section>' : g.src === 'added' ? '<section class="sec"><p class="ask">أُضيفت بزر «أضف لعبة»: معلوماتها آلية من <bdi dir="ltr">IGDB</bdi>، وعالمها واقتباساتها تكتمل في البناء القادم.</p></section>' : ''}
 ${board(g)}${placeSec(g)}${story}${ttbHTML(g)}${seriesSec(g)}${relSec(g)}${adaptSec(g)}${platsSec(g)}${subsSec(g, pv)}${pcSec(g, pv)}${mediaSec(g)}${linksSec(g)}`; }
 // ---------- عن اللعبة. النصوص الطويلة (النبذة والقصة بلغتيهما) في ملف مستقل يُجلب مرة واحدة (ويُسبق جلبه بعد الإقلاع)، وما أُضيف للتو نصه في سجله.
 // المترجَم يُعرض بالعربية وتحته الأصل الإنجليزي لمن أراده؛ وغير المترجَم بالإنجليزية مع زر «ترجمها لي» يوصل الطلب إلى المترجم (فرع requests في المستودع).
@@ -505,7 +516,7 @@ const OFTYPE = { remake: 'للعبة', remaster: 'للعبة', standalone: 'لل
 const chainLink = (m, t) => m ? `<button type="button" class="ch-l" data-act="${D.byId.has(m.id) ? 'open' : 'peek'}" data-id="${m.id}" data-q="${esc(m.title)}${m.year ? ' ' + m.year : ''}" dir="ltr">${esc(t || m.title)}</button>` : `<bdi dir="ltr">${esc(t)}</bdi>`;
 // الخريطة فوقها (site/pos.js): أجزاء سلسلتها بترتيب الصدور، وما ختمته أو شاهدته ممتلئ، وموضعها نقطة مضيئة. واللعبة التي لا موقع مكتوب لها تُعرَّف
 // برقمها بين أجزاء سلسلتها وما صدر قبلها وبعدها، والتي لا سلسلة لها ولا أصل لافتتها «لعبة منفردة» (E58)
-function chainHTML(g) { const p = g.place, k = p && PK[p.k] ? p.k : null, par = g.rel?.parent_game || g.rel?.version_parent;
+function chainHTML(g) { const p = g.place, k = p && PK[p.k] ? p.k : null, par = [g.rel?.parent_game, g.rel?.version_parent].find(shown);
   const P = par && chainLink(par, par.title + (par.year && par.year !== g.year ? ` (${par.year})` : '')), A = p?.after && chainLink(byTitle(g, p.after), p.after), B = p?.before && chainLink(byTitle(g, p.before), p.before);
   const s = (g.series || []).map(id => D.series[id]).find(x => x?.members?.some(m => m.id === g.id)), i = s ? s.members.findIndex(m => m.id === g.id) : -1, j = s?.story?.order?.indexOf(g.id) ?? -1, M = s?.members || [];
   const solo = i < 0 && !par && (!k || k === 'alone' || k === 'nostory'), out = m => m.status && m.status !== 'released' ? ' (لم تصدر بعد)' : '';
@@ -633,6 +644,106 @@ function adopt(g, r, draw) { if (!g || D.pool.has(g.id)) return false; merge(r |
 let pvOpen = 0;
 async function peek(id, btn) { if (D.byId.has(id)) { if (addDlg.open) addDlg.close(); return openGame(id); }
   const q = btn?.dataset.q || (await titles()).find(x => x.id === id)?.title || btn?.closest('[data-t]')?.dataset.t || ''; if (sheet.open) closeGame(); openAdd(q); }
+// ---------- حساباتي: Steam وPlayStation وXbox، ثم صندوق الأسئلة. السحب من خادم صغير لصاحب الموقع على Netlify (netlify/functions/game-accounts.mjs)،
+// رابطه في data/site.json (accounts)، ويعرفه الخادم صاحباً بالرمز الذي يكتب في مستودع الموقع (رمز GitHub على هذا الجهاز). والحفظ إيداع في القائمة كالإضافة
+let ACC = null, ACCS = '';
+const steamId = () => store.get(STEAM) || ACC?.steamId || '';
+async function accApi(body) { const base = ACCS || await accountsServer(); if (!base) throw Object.assign(new Error('خادم «حساباتي» لم يُجهَّز بعد.'), { setup: true });
+  if (!ghToken()) throw need('gh', 'سحب ألعابك من حساباتك يحتاج رمز GitHub على هذا الجهاز: به يعرفك الخادم صاحباً للموقع.');
+  let r; try { r = await fetch(base + '/api/game-accounts', { method: 'POST', headers: { 'content-type': 'application/json', authorization: 'Bearer ' + ghToken() }, body: JSON.stringify(body) }); }
+  catch { throw new Error('تعذّر الوصول إلى خادم «حساباتي». تحقق من الاتصال، ومن رابطه في data/site.json.'); }
+  const j = await r.json().catch(() => ({}));
+  if (r.status === 401) throw need('gh', j.error === 'owner' ? 'رمز GitHub على هذا الجهاز لا يكتب في مستودع الموقع، فلا يعرفك الخادم صاحباً له.' : 'رمز GitHub على هذا الجهاز غير صالح أو منتهٍ.');
+  if (!r.ok) throw Object.assign(new Error(j.error || 'تعذّر إكمال الطلب الآن. حاول بعد قليل.'), { srv: j.need || '' });
+  return j; }
+async function openAccounts() { if (!accDlg.open) showM(accDlg); drawAcc(); if (ACC && !ACC.err) return;
+  ACCS = await accountsServer(); try { ACC = await accApi({ action: 'status' }); } catch (e) { ACC = { err: e.message, setup: !!e.setup, gh: e.need === 'gh' }; } drawAcc(); }
+function drawAcc(busy = '', err = {}, note = '') { const id = steamId(), s = ACC || {};
+  const box = (k, name, body) => `<section class="src s-${k}"><header><h3 dir="ltr">${name}</h3></header>${body}${err[k] ? `<p class="msg" role="alert">${esc(err[k])}</p>` : ''}</section>`;
+  const pull = (k, t = 'اسحب ألعابي') => `<button class="btn pri" type="button" data-act="pull" data-src="${k}"${busy ? ' disabled' : ''}>${busy === k ? esc(note || 'أسحب ألعابك…') : t}</button>`;
+  $('#acc-body').innerHTML = `<h2 id="acc-h">حساباتي في المنصات</h2><p class="lead">اسحب ما لعبته، وأسألك عن كل لعبة: ختمتها؟ ما زلت تلعبها؟ أم لاحقاً؟ ثم تُضاف إلى قوائمك بمنصتها.</p>
+${s.setup ? `<p class="msg">السحب من حساباتك يحتاج خادماً صغيراً لك على <bdi dir="ltr">Netlify</bdi>، يُجهَّز مرة واحدة ثم يُكتب رابطه في مستودعك (<bdi dir="ltr">data/site.json</bdi>). الخطوات في <bdi dir="ltr">README</bdi> المستودع، قسم «حساباتي».</p>`
+  : s.gh ? `<p class="msg">${esc(s.err)}</p><div class="acts"><button class="btn sec" type="button" data-act="acc-keys">مفاتيح الموقع</button></div>` : s.err ? `<p class="msg">${esc(s.err)}</p>` : ''}${s.igdb === false ? '<p class="msg">مفاتيح <bdi dir="ltr">IGDB</bdi> غير موجودة في Netlify بعد، فلا يمكن مطابقة الألعاب.</p>' : ''}
+${box('steam', 'Steam', id ? `<p>مرتبط بحسابك (<bdi dir="ltr">…${esc(id.slice(-5))}</bdi>). يسحب ما لعبته وساعاته.</p><label class="tick"><input type="checkbox" id="steam-all"> ومعها ما في مكتبتي ولم ألعبه</label><div class="acts">${pull('steam')}<button class="btn sec" type="button" data-act="steam-off">افصل</button></div>${s.steam === false ? '<p class="note">يلزم مفتاح Steam في Netlify باسم <code>STEAM_API_KEY</code> (من steamcommunity.com/dev/apikey).</p>' : ''}`
+  : `<p>ادخل بحسابك في Steam نفسه (بلا كلمة سر هنا)، فيُعرف حسابك ويُسحب ما لعبته.</p><div class="acts">${ACCS && !s.err ? `<a class="btn pri" href="${esc(ACCS)}/api/game-accounts?steam=login">ادخل عبر Steam</a>` : ''}</div><p class="note">يلزم أن تكون «تفاصيل الألعاب» عامة في خصوصية ملفك على Steam${s.steam === false ? '، ومفتاح Steam في Netlify باسم <code>STEAM_API_KEY</code>' : ''}.</p>`)}
+${box('psn', 'PlayStation', s.psn ? `<p>رمزك محفوظ في Netlify. يسحب ما لعبته على PS4 وPS5 وساعاته، ونسبة كؤوسك والبلاتينيوم.</p><div class="acts">${pull('psn')}</div>`
+  : `<p>يسحب ما لعبته على PS4 وPS5 وساعاته وكؤوسك. يحتاج رمز <bdi dir="ltr">NPSSO</bdi> من حسابك لمرة واحدة:</p><ol class="steps"><li>سجّل دخولك في <a href="https://www.playstation.com/" target="_blank" rel="noopener">playstation.com</a>.</li><li>افتح <a href="https://ca.account.sony.com/api/v1/ssocookie" target="_blank" rel="noopener">هذا الرابط</a> في المتصفح نفسه، وانسخ قيمة <bdi dir="ltr">npsso</bdi>.</li><li>الصقها هنا واسحب.</li></ol>
+<label class="key">رمز NPSSO<input id="psn-key" type="password" autocomplete="off" spellcheck="false" dir="ltr"></label><div class="acts">${pull('psn')}</div><p class="note">الرمز يفتح حسابك كما تفتحه كلمة السر، فلا تشاركه. يُستخدم لهذا السحب ولا يُحفظ في أي مكان. وهي طريقة غير رسمية من Sony، قد تتوقف إن غيّرت Sony نظامها.</p>`)}
+${box('xbox', 'Xbox', s.xbox ? `<p>مفتاح OpenXBL محفوظ في Netlify. يسحب ما لعبته ونسبة إنجازاتك.</p><div class="acts">${pull('xbox')}</div>`
+  : `<p>يسحب ما لعبته على Xbox والكمبيوتر ونسبة إنجازاتك، عبر خدمة <a href="https://xbl.io/" target="_blank" rel="noopener"><bdi dir="ltr">OpenXBL</bdi></a> الوسيطة (غير تابعة لمايكروسوفت): ادخلها بحسابك، وانسخ مفتاح الـ<bdi dir="ltr">API</bdi> من صفحة حسابك فيها.</p>
+<label class="key">مفتاح OpenXBL<input id="xbox-key" type="password" autocomplete="off" spellcheck="false" dir="ltr"></label><div class="acts">${pull('xbox')}</div><p class="note">يُستخدم لهذا السحب ولا يُحفظ.</p>`)}
+${box('nin', 'Nintendo · الجوال', `<p>لا تتيح Nintendo ولا متاجر الجوال سجل اللعب لأي تطبيق، فأضفها يدوياً واختر منصتها من بطاقتها.</p><div class="acts"><button class="btn sec" type="button" data-act="add">${ic('plus')}أضف لعبة</button></div>`)}`; }
+async function pull(src) { const err = {};
+  const body = { action: src }; if (src === 'steam') { body.steamid = steamId(); body.all = !!$('#steam-all')?.checked; } if (src === 'psn' && !ACC?.psn) body.npsso = $('#psn-key')?.value.trim(); if (src === 'xbox' && !ACC?.xbox) body.key = $('#xbox-key')?.value.trim();
+  if (src === 'psn' && !ACC?.psn && !body.npsso) return drawAcc('', { psn: 'الصق رمز NPSSO أولاً.' }); if (src === 'xbox' && !ACC?.xbox && !body.key) return drawAcc('', { xbox: 'الصق مفتاح OpenXBL أولاً.' });
+  drawAcc(src);
+  try { const r = await accApi(body);
+    const all = await matchAll(r, (n, t) => drawAcc(src, {}, `أطابقها مع IGDB… ${n} من ${t}`)); accDlg.close(); openInbox(all); }
+  catch (e) { err[src] = e.message; drawAcc('', err); if (e.need === 'gh') openKeys('gh', e.message, r => { if (r.gh) { ACC = null; openAccounts(); } }); } }
+// المطابقة بالاسم في دفعات (حتى أربعين لعبة في كل طلب، فلا تتجاوز دالة مهلتها مهما طالت قائمتك)، والتقدّم ظاهر على الزر.
+// ما لم يُطابق بعد دفعتين بلا تقدّم يُعرض «لم أجدها» مع زر البحث عنه بالاسم
+async function matchAll(r, tick) { const items = r.items.map(x => ({ ...x })), at = new Map(items.map((x, i) => [x.key, i]));
+  for (let round = 0, stall = 0; round < 40; round++) { const todo = items.filter(x => x.todo); if (!todo.length) break;
+    tick(items.length - todo.length, items.length);
+    const m = await accApi({ action: 'match', source: r.source, items: todo.slice(0, 40).map(({ key, name, plat, last }) => ({ key, name, plat, last })) }); let moved = 0;
+    for (const u of m.items) { const x = items[at.get(u.key)]; if (!x) continue; if (!u.todo) moved++; Object.assign(x, { igdb: u.igdb, sure: u.sure, title: u.title, year: u.year, cover: u.cover, ttb: u.ttb, todo: !!u.todo }); }
+    stall = moved ? 0 : stall + 1; if (stall >= 2) break; }
+  for (const x of items) if (x.todo) { x.todo = false; x.igdb = null; }
+  return { ...r, items, matched: items.filter(x => x.igdb).length }; }
+
+// صندوق الأسئلة: لعبة لعبة، بغلافها وما يرجّح جوابها (ساعاتك ومتوسط ختمها، كؤوسك، آخر لعب)، والجواب يضعها في قائمتها بمنصتها
+let IB = null;
+const ignored = () => { try { return new Set(JSON.parse(store.get(IGN) || '[]')); } catch { return new Set(); } };
+const SRCN = { steam: 'Steam', psn: 'PlayStation', xbox: 'Xbox' }, clean = s => fold(s);
+function guess(x) { const n = x.ttb?.n, days = x.last ? (Date.now() - Date.parse(x.last)) / 864e5 : 1e9;
+  if (x.platinum) return ['done', 'حصلت على كأسها البلاتينية'];
+  if (n && x.hours >= n * .85) return ['done', `لعبتها ${hrs(x.hours)}، ومتوسط ختمها ${hrs(n)}`];
+  if (x.progress >= 85) return ['done', `أنجزت ${x.progress}% من إنجازاتها`];
+  if (days <= 45 && (x.hours == null || x.hours >= .5)) return ['play', 'لعبتها في الأسابيع الأخيرة'];
+  if (x.hours != null && x.hours < .5) return ['new', x.hours ? 'لعبتها دقائق فقط' : 'لم تلعبها بعد'];
+  return ['new', x.hours ? `لعبتها ${hrs(x.hours)} وتوقفت` : 'لعبتها من مدة']; }
+function openInbox(r) { const have = new Set(D.games.map(g => g.id)), ign = ignored(), best = new Map();
+  for (const x of r.items.filter(x => x.igdb && !have.has(x.igdb) && !ign.has(x.key) && !ign.has('g' + x.igdb))) { const o = best.get(x.igdb); if (!o || (x.hours || 0) > (o.hours || 0)) best.set(x.igdb, x); }
+  IB = { src: r.source, items: [...best.values()], miss: r.items.filter(x => !x.igdb), have: r.items.filter(x => x.igdb && have.has(x.igdb)).length, at: 0, picks: [] };
+  if (!ibDlg.open) showM(ibDlg); drawIb(); }
+function drawIb(dir) { const ib = $('#ib'), n = IB.items.length, x = IB.items[IB.at], kept = IB.picks.filter(p => p.s !== 'skip').length;
+  const head = `<header class="ib-h"><h2 id="ib-h">من ${SRCN[IB.src] || IB.src}</h2><p>${n ? `${Math.min(IB.at + 1, n)} من ${n}` : ''}${IB.have ? ` · ${nGames(IB.have)} في قائمتك من قبل` : ''}</p><i class="ib-bar" style="--p:${n ? IB.at / n : 1}"></i><button class="close" type="button" data-act="ib-close" aria-label="إغلاق">${ic('x')}</button></header>`;
+  if (!x) { ib.innerHTML = `${head}<div class="ib-end"><h3>${n ? 'انتهت الأسئلة' : IB.have || !IB.miss.length ? 'لا جديد هنا' : 'لم أطابق شيئاً'}</h3><p>${n ? (kept ? `اخترت قوائم ${nGames(kept)}. احفظها لتُضاف إلى قوائمك.` : 'لم تختر إضافة شيء.') : IB.have || !IB.miss.length ? `كل ما لعبته في ${SRCN[IB.src] || ''} في قائمتك من قبل، أو تجاهلته.` : `لم أجد ما لعبته في ${SRCN[IB.src] || ''} بأسمائه في <bdi dir="ltr">IGDB</bdi>. ابحث عن أي لعبة منها بالاسم:`}</p>
+${IB.miss.length ? `<details class="miss"${!n && !IB.have ? ' open' : ''}><summary>${nGames(IB.miss.length)} لم أجدها في <bdi dir="ltr">IGDB</bdi></summary><ul>${IB.miss.slice(0, 60).map(m => `<li><bdi dir="ltr">${esc(m.name)}</bdi><button type="button" data-act="ib-find" data-q="${esc(m.name)}">ابحث عنها</button></li>`).join('')}</ul></details>` : ''}
+<div class="acts">${kept ? `<button class="btn pri" type="button" data-act="ib-save">احفظ ${nGames(kept)}</button>` : ''}${IB.at ? `<button class="btn sec" type="button" data-act="ib-back">${ic('undo')}رجوع</button>` : ''}<button class="btn sec" type="button" data-act="ib-close">${kept ? 'لاحقاً' : 'إغلاق'}</button></div></div>`; return; }
+  const [g, why] = guess(x), next = IB.items.slice(IB.at + 1, IB.at + 3);
+  const hints = [x.hours != null && `<span>${x.hours ? `لعبتها ${hrs(x.hours)}` : 'لم تلعبها'}</span>`, x.ttb?.n && `<span>متوسط ختمها ${hrs(x.ttb.n)}</span>`, x.platinum && '<span class="plat">بلاتينيوم</span>', x.progress != null && `<span>إنجازاتك ${x.progress}%</span>`, x.last && `<span>آخر لعب ${monthAr(x.last)}</span>`, twinOf(x.title || x.name) && `<span class="tw">${twinNote(twinOf(x.title || x.name))}</span>`].filter(Boolean).join('');
+  const A = [['done', 'ختمتها', 'trophy'], ['play', 'ما زلت ألعبها', 'play'], ['new', 'لاحقاً', 'star'], ['seen', 'شاهدتها فقط', 'eye'], ['skip', 'تجاهلها', 'x']];
+  ib.innerHTML = `${head}<div class="ib-stack">${next.map((y, i) => `<div class="ib-card ghost g${i + 1}" aria-hidden="true">${y.cover ? `<img alt="" src="${img(y.cover)}">` : ''}</div>`).reverse().join('')}
+<div class="ib-card top${dir ? ' in-' + dir : ''}"><div class="ib-cv">${x.cover ? `<img alt="" src="${img(x.cover, 'cover_big_2x')}">` : cart(x)}<span class="band f-${famOf(x.plat)}"><b dir="ltr">${esc(abbr(x.plat))}</b></span></div>
+<div class="ib-t"><h3 dir="ltr">${esc(x.title || x.name)}</h3>${x.title && clean(x.name) !== clean(x.title) ? `<p class="as">في ${SRCN[IB.src]}: <bdi dir="ltr">${esc(x.name)}</bdi></p>` : ''}<p class="hints">${hints}</p></div></div></div>
+<p class="ib-q">هل ختمتها؟ <small>الأرجح «${A.find(a => a[0] === g)[1]}»: ${esc(why)}</small></p>
+<div class="ib-a">${A.map(([k, t, i], n) => `<button type="button" class="m-${k}${k === g ? ' rec' : ''}" data-act="ib-pick" data-v="${k}"><kbd>${n + 1}</kbd>${ic(i)}${t}</button>`).join('')}</div>
+<div class="acts ib-f">${IB.at ? `<button class="btn sec" type="button" data-act="ib-back">${ic('undo')}رجوع</button>` : ''}${kept ? `<button class="btn sec" type="button" data-act="ib-save">احفظ ما اخترته (${kept})</button>` : ''}<button class="btn sec" type="button" data-act="ib-end">تخطَّ البقية</button></div>`;
+  ib.querySelector(`.ib-a .rec`)?.focus({ preventScroll: true }); }
+function ibPick(v) { const x = IB.items[IB.at]; if (!x) return; IB.picks = IB.picks.filter(p => p.key !== x.key);
+  IB.picks.push({ key: x.key, igdb: x.igdb, s: v, on: v === 'seen' ? 'yt' : x.plat, at: v === 'done' || v === 'play' ? (x.last || today) : today, h: x.hours ? Math.round(x.hours) : undefined });
+  const top = $('#ib .ib-card.top'); IB.at++;
+  if (top && !calm) { top.classList.add('out-' + (v === 'skip' ? 'skip' : v === 'done' ? 'up' : 'side')); setTimeout(() => drawIb('next'), 230); } else drawIb('next'); }
+function ibBack() { if (!IB.at) return; IB.at--; const x = IB.items[IB.at]; IB.picks = IB.picks.filter(p => p.key !== x.key); drawIb('back'); }
+async function ibSave(btn) { const keepers = IB.picks.filter(p => p.s !== 'skip'), skips = IB.picks.filter(p => p.s === 'skip');
+  const ign = ignored(); for (const p of skips) ign.add(p.key); store.set(IGN, JSON.stringify([...ign].slice(-3000)));
+  if (!keepers.length) { ibDlg.close(); return; }
+  const again = () => $('#ib [data-act=ib-save]')?.click(); if (needGh(again)) return;
+  btn.disabled = true; btn.textContent = 'تُحفظ…';
+  try { const at = new Date().toISOString(), by = new Map(IB.items.map(x => [x.key, x])), rows = keepers.map(p => ({ p, x: by.get(p.key) })).filter(({ x }) => x);
+    await addGames(rows.map(({ p, x }) => ({ igdb: p.igdb, title: x.title || x.name, year: x.year || null, at })));
+    // بطاقات مؤقتة بما عاد من المطابقة (الاسم والسنة والغلاف ومتوسط الختم) حتى يبنيها الموقع بمعلوماتها كاملة، وحالة كل لعبة في سجلك بمنصتها
+    const games = []; for (const { p, x } of rows) { const g = { id: p.igdb, title: x.title || x.name, year: x.year || null, ...(x.cover ? { cover: x.cover } : {}), ...(x.ttb ? { ttb: x.ttb } : {}), plats: [], genres: [], fams: x.plat ? [famOf(x.plat)] : [], at, pending: 1 };
+      if (!D.pool.has(g.id)) { adopt(g, { game: g }, false); renew(g.id); games.push(g); } }
+    if (games.length) keep({ games });
+    for (const { p } of rows) if (D.byId.has(p.igdb)) P.games[p.igdb] = Object.fromEntries(Object.entries({ s: p.s, on: p.on, at: p.at, h: p.h }).filter(([, v]) => v != null && v !== ''));
+    save(); waitBuild(games.length, await repoOf(), D.built); ibDlg.close(); renderGrid(); renderMenu(true); soonHTML(); toast(`أُضيفت ${nGames(rows.length)} إلى قوائمك. تكتمل معلوماتها مع البناء القادم.`);
+  } catch (e) { btn.disabled = false; btn.textContent = 'أعد المحاولة'; toast(e.message); keysThen(e, again); } }
+ibDlg.addEventListener('keydown', e => { if (!IB || e.target.matches('input, textarea') || e.altKey || e.ctrlKey || e.metaKey) return; const k = { 1: 'done', 2: 'play', 3: 'new', 4: 'seen', 5: 'skip' }[e.key];
+  if (k && IB.items[IB.at]) { e.preventDefault(); ibPick(k); } else if (e.key === 'Backspace' && IB.at) { e.preventDefault(); ibBack(); } });
+ibDlg.addEventListener('cancel', e => { if (IB?.picks.some(p => p.s !== 'skip') && IB.at < IB.items.length) { e.preventDefault(); IB.at = IB.items.length; drawIb(); } });
+
 // ---------- اقتراحات أثناء الكتابة، قبل Enter: من فهرس أشهر الألعاب (data/titles.json) بالبحث المتسامح، ثم من بحث IGDB نفسه
 let TI = null; const titles = () => TI ??= get('titles.json').then(j => prepare(j.items.map(r => ({ id: r[0], y: r[1], v: r[2], f: r[3], title: r[4], ar: r[5] || '', c: r[7] || '', names: [r[4], r[5] || '', ...(r[6] ? String(r[6]).split('|') : [])] }))))
   .catch(() => { TI = null; return []; });
@@ -685,10 +796,21 @@ document.addEventListener('click', e => { if (!qm.hidden && !e.target.closest('#
   else if (act === 'soon') soonFlip();
   else if (act === 'subf') { ui.dup = null; ui.sub = !ui.sub; t.setAttribute('aria-pressed', String(ui.sub)); apply(false); }
   else if (act === 'reset') { Object.assign(ui, { q: '', plat: '', genre: '', sub: false }); $('#q').value = ''; $('#chips').innerHTML = chipsHTML(); apply(false); }
-  else if (act === 'add') openAdd();
+  else if (act === 'add') { if (accDlg.open) accDlg.close(); openAdd(); }
+  else if (act === 'accounts') openAccounts();
+  else if (act === 'close-acc') accDlg.close();
+  else if (act === 'acc-keys') openKeys('gh', '', r => { if (r.gh) { ACC = null; openAccounts(); } });
+  else if (act === 'pull') pull(t.dataset.src);
+  else if (act === 'steam-off') { store.del(STEAM); if (ACC) ACC.steamId = null; drawAcc(); }
+  else if (act === 'ib-pick') ibPick(t.dataset.v);
+  else if (act === 'ib-back') ibBack();
+  else if (act === 'ib-end') { IB.at = IB.items.length; drawIb(); }
+  else if (act === 'ib-save') ibSave(t);
+  else if (act === 'ib-close') ibDlg.close();
+  else if (act === 'ib-find') { ibDlg.close(); openAdd(t.dataset.q); }
   else if (act === 'room') toggleEye();                                                                             // العين: ترفع الفلتر أو تعيده (site/adult.js)
-  else if (act === 'room-show') { setShowing(!showing()); drawEye(); renderGrid(); soonHTML(); redrawSheet(); }   // أغلفة ألعاب +18 كلها: تُكشف أو تُغطى
-  else if (act === 'bare') { uncover(+t.dataset.id); const el = document.getElementById('g-' + t.dataset.id), g = D.byId.get(+t.dataset.id); if (el && g) { el.outerHTML = card(g); apply(false); } redrawSheet(); }   // غلاف هذه اللعبة وحدها (والعلبة الجديدة تأخذ ظهورها من التصفية)
+  else if (act === 'room-show') { setShowing(!showing()); drawEye(); renderGrid(); soonHTML(); redrawSheet(); renderMenu(false); }   // أغلفة ألعاب +18 كلها: تُكشف أو تُغطى
+  else if (act === 'bare') { uncover(+t.dataset.id); const el = document.getElementById('g-' + t.dataset.id), g = D.byId.get(+t.dataset.id); if (el && g) { el.outerHTML = card(g); apply(false); } redrawSheet(); if (slotId === g?.id) renderMenu(false); }   // غلاف هذه اللعبة وحدها (والعلبة الجديدة تأخذ ظهورها من التصفية)
   else if (act === 'add-pick') askList(t);
   else if (act === 'add-to') addGame(+t.dataset.igdb, t.dataset.v, t);
   else if (act === 'preview') peek(+t.dataset.igdb, t);
@@ -710,7 +832,8 @@ $('#mm-menu').addEventListener('keydown', e => { const b = $$('#mm-menu .mi'), i
 const liftVeil = () => { const v = $('#veil'); if (!v || v.hidden) return; requestAnimationFrame(() => requestAnimationFrame(() => { v.classList.add('lift'); setTimeout(() => v.remove(), calm ? 0 : 1000); })); };
 function route() { const h = location.hash.slice(1); let m;
   if ((m = h.match(/^g(\d+)$/)) && D.byId.has(+m[1])) openGame(+m[1], false);
- }
+  else if ((m = h.match(/^steam=(\d{17})$/))) { store.set(STEAM, m[1]); history.replaceState(null, '', location.pathname); toast('رُبط حسابك في Steam'); openAccounts(); }
+  else if (h === 'steam-fail') { history.replaceState(null, '', location.pathname); toast('لم يكتمل الدخول عبر Steam. حاول ثانية.'); openAccounts(); } }
 try {
   const cat = await get('games.json'); IMGB = cat.img || IMGB; D.built = cat.built; watchBuild('games', 'data/games.json', 'built'); D.stores = cat.stores || null; D.subs = cat.subs || null; merge(cat);
   // لعبة صُحّح رقمها (مطابقة خاطئة من سحب قديم): سجلها ينتقل إلى رقمها الصحيح مرة واحدة ويُزامَن
@@ -728,7 +851,7 @@ try {
     store.set(PEND, JSON.stringify(left)); } catch {}
   const last = store.get('games.list'); ui.list = ORDER.includes(last) ? last : inL('play').length ? 'play' : inL('new').length ? 'new' : 'all';
   renderGrid(); renderMenu(false); soonHTML(); liftVeil();
-  { const bar = $('.bar'), g = bar.querySelector('.gate'); new IntersectionObserver(([e]) => { const on = !e.isIntersecting; bar.classList.toggle('docked', on); g.tabIndex = on ? 0 : -1; g.setAttribute('aria-hidden', String(!on)); }).observe($('.top')); }
+  { const bar = $('.bar'), g = bar.querySelector('.gate'); new IntersectionObserver(([e]) => { const on = !e.isIntersecting; bar.classList.toggle('docked', on); g.tabIndex = on ? 0 : -1; g.setAttribute('aria-hidden', String(!on)); dockEye(on); }).observe($('.top')); }
   initSync(id => { if (id !== 'games') return; load(); renderGrid(); renderMenu(false); soonHTML(); if (ui.view === 'series') $('#series').innerHTML = seriesHTML(); if (openId) { const sv = $('#sheet-body .save'), g = D.byId.get(openId); if (sv && g) sv.outerHTML = saveHTML(g); } });
   route(); setTimeout(texts, 1200);
 } catch (err) { $('#grid').innerHTML = '<p class="load">تعذّر تحميل القائمة. حدّث الصفحة.</p>'; liftVeil(); console.error(err); }

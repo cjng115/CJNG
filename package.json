@@ -1,0 +1,8 @@
+{
+  "name": "watch-portals",
+  "private": true,
+  "description": "يحتاجه Netlify لدالة «حساباتي» وحدها (مكتبة psn-api لسحب PlayStation). الموقع نفسه لا يحتاج تثبيت شيء.",
+  "dependencies": {
+    "psn-api": "2.18.1"
+  }
+}

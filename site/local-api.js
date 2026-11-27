@@ -25,7 +25,7 @@ export async function filmApi(b) { const adult = b.adult === true || b.adult ===
     const usual = s => s.filter(x => !x.c.adult), x18 = s => adult ? s.filter(x => x.c.adult).slice(0, 3) : [], byScore = (a, c) => c.score - a.score;
     const movies = [...usual(mv.scored).slice(0, 5), ...x18(mv.scored)].sort(byScore).map(x => ({ kind: 'movie', c: x.c })), shows = [...usual(tv.scored).filter(x => x.exact).slice(0, 2), ...x18(tv.scored)].sort(byScore).map(x => ({ kind: 'tv', c: x.c }));
     const candidates = await Promise.all([...movies, ...shows].map(async ({ kind, c }, i) => {
-      const col = kind === 'movie' && i < 4 && !c.adult ? (await tmdb('/movie/' + c.id).catch(() => null))?.belongs_to_collection?.name?.replace(/\s+Collection$/i, '') : null;
+      const col = kind === 'movie' && i < 4 ? (await tmdb('/movie/' + c.id).catch(() => null))?.belongs_to_collection?.name?.replace(/\s+Collection$/i, '') : null;
       return { tmdb: c.id, kind, title: c.title || c.name, year: year(c), poster: c.poster_path || null, collection: col || undefined, adult: c.adult ? 1 : undefined }; }));
     return { parsed, sure: mv.sure, candidates }; }
   if (b.action === 'add' || b.action === 'preview') {
@@ -39,8 +39,11 @@ export async function filmApi(b) { const adult = b.adult === true || b.adult ===
   // عالم العمل: سلسلته وعالمه وأعماله المرتبطة من Wikidata، وترتيب أحداثه من أدلة Wikipedia. الفشل لا يعطّل البطاقة
   if (b.action === 'worlds') {
     const kind = b.kind === 'tv' ? 'tv' : 'movie', id = +b.tmdb; if (!Number.isInteger(id) || id <= 0) throw new Error('معرّف غير صالح.');
-    const key = (kind === 'tv' ? 't' : 'm') + id, t0 = Date.now(), opt = { timeout: 20000, tries: 2, fetchImpl: pageFetch }, r = await worldsFor([key], { tmdb, opt }), cols = {};
+    // العمل نفسه أولاً: عمل +18 والفلتر قائم لا يُبحث له عن عالم، وعالم عمل +18 يدخله ما خارج القائمة من +18 (lib-worlds: known.adult)
     const self = await tmdb(detailPath(kind, id), { language: 'en-US' }).catch(() => null), date = (kind === 'tv' ? self?.first_air_date : self?.release_date) || null;
+    if (self?.adult && !adult) throw new Error('هذا العمل مصنَّف للبالغين: افتح العين أعلى الصفحة.');
+    const key = (kind === 'tv' ? 't' : 'm') + id, t0 = Date.now(), opt = { timeout: 20000, tries: 2, fetchImpl: pageFetch };
+    const r = await worldsFor([key], { tmdb, opt, known: self ? { [key]: { title: self.title || self.name, date, ...(self.adult ? { adult: true } : {}) } } : {} }), cols = {};
     const groups = (r.works[key]?.worlds || []).map(w => ({ w, keys: r.worlds[w].order, wide: ['universe', 'franchise'].includes(r.worlds[w].kind) })).filter(g => g.keys.length >= 2 && g.keys.length <= 40);
     const col = kind === 'movie' && self?.belongs_to_collection?.id ? await tmdb('/collection/' + self.belongs_to_collection.id, { language: 'en-US' }).then(shapeCollection).catch(() => null) : null;
     if (col?.parts.length > 1) groups.push({ c: col.id, keys: col.parts.map(p => 'm' + p.tmdb) });

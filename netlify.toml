@@ -1,0 +1,12 @@
+# Netlify هنا لدالة «حساباتي» وحدها (netlify/functions/game-accounts.mjs): تسحب ألعابك من Steam وPlayStation وXbox لصفحة «ألعابي».
+# الموقع نفسه على GitHub Pages ويبنيه سير العمل في المستودع، فلا يُنشر هنا.
+# كل نشر على Netlify يأخذ من رصيده الشهري (15 من 300 في الخطة المجانية)، فلا يُنشر إلا حين يتغير كود الدالة أو ما تعتمد عليه.
+# خروج 0 = تجاهل النشر، وغيره = انشر. وحين لا يُعرف ما نُشر قبل (أول نشر، أو ذاكرة Netlify فُرّغت) يُنشر.
+[build]
+  publish = "netlify/public"
+  command = "echo accounts-only"
+  ignore = '[ "$CACHED_COMMIT_REF" != "$COMMIT_REF" ] && git diff --quiet $CACHED_COMMIT_REF $COMMIT_REF -- netlify netlify.toml package.json scripts/lib-igdb.mjs scripts/lib-games.mjs'
+
+[functions]
+  directory = "netlify/functions"
+  node_bundler = "esbuild"

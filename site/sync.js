@@ -1,5 +1,6 @@
 // المزامنة الحيّة لسجل المشاهدة بين الأجهزة، عبر Firebase Realtime Database يملكها صاحب الموقع.
-// - لا إعدادات في المستودع: صاحب الموقع يلصق firebaseConfig مرة واحدة في كل جهاز، ويُحفظ في متصفحه فقط (guides.fb).
+// - الإعداد (firebaseConfig) إما في مستودع الموقع (data/site.json، firebase) فيصل كل جهاز وحده ولا يبقى إلا الدخول بحساب قوقل،
+//   وإما يُلصق مرة في كل جهاز. ويُحفظ في المتصفح (guides.fb). وإيقافها في جهاز يبقى (guides.fb.off) حتى تُفعَّل فيه من جديد.
 // - الدخول بحساب قوقل، والسجل في مسار خاص بالحساب: u/<رقم الحساب>/guides، فلا يقرؤه ولا يكتب فيه غير صاحبه
 //   (قاعدة u/$uid في القاعدة). على GitHub Pages تُخدَم صفحات الدخول من نطاق المشروع في Firebase (authDomain كما في الإعداد)، ونطاق الموقع يُضاف إلى
 //   Authorized domains في إعدادات الدخول في Firebase.
@@ -11,7 +12,8 @@
 // - الألعاب: لكل لعبة أربع علامات مستقلة: قائمتها g، والمنصة التي خُتمت عليها n، وتاريخ الختم d، والساعات h.
 //   ومعها علامة k لكل تنبيه «لعبتان مكررتان» أسكته صاحبه (مفتاحها أرقام ألعاب المجموعة مرتبة)، فلا يعود التنبيه على جهاز آخر.
 // - أنمياتي: لكل عمل خمس علامات مستقلة: قائمته a، وما شوهد من حلقاته p، وتقييمه r، وتاريخ بدايته b، وتاريخ نهايته z.
-const SDK = 'https://www.gstatic.com/firebasejs/10.12.2/firebase-', CFG = 'guides.fb', META = 'guides.sync', LEGACY = 'guides';
+import { siteConfig } from './site-config.js?v=__BUILD__';
+const SDK = 'https://www.gstatic.com/firebasejs/10.12.2/firebase-', CFG = 'guides.fb', OFF = 'guides.fb.off', META = 'guides.sync', LEGACY = 'guides';
 const GUIDES = { dc: 'dcg.progress', fate: 'fateg.progress', films: 'filmsg.progress', games: 'gamesg.progress', anime: 'animeg.progress' };
 const OK = { w: ['watched', 'watching', 'list', 'skip'], f: ['watched', 'next'], g: ['play', 'new', 'done', 'seen'], a: ['watching', 'completed', 'hold', 'dropped', 'plan'] };
 // قيم الألعاب غير القائمة: رمز منصة، وتاريخ، وعدد ساعات. وكل علامة لعبة تقابل حقلاً في سجلها
@@ -77,7 +79,9 @@ function reconcile(id) {
 // بعد كل حفظ محلي: يُرسل ما تغيّر (إن كانت المزامنة تعمل؛ وإلا يبقى الفرق محفوظاً حتى تعمل)
 export function touch(id) { try { reconcile(id); } catch (e) { console.error(e); } }
 
-const cfgOf = () => { const c = json(CFG, null); return c && c.apiKey && c.projectId && c.databaseURL ? c : null; };
+const whole = c => c && typeof c === 'object' && c.apiKey && c.projectId && c.databaseURL ? c : null, cfgOf = () => whole(json(CFG, null));
+// إعداد المستودع (data/site.json): الحقول المعروفة وحدها
+const repoCfg = async () => { const f = (await siteConfig()).firebase; if (!whole(f)) return null; const c = {}; for (const k of ['apiKey', 'authDomain', 'databaseURL', 'projectId', 'appId']) if (typeof f[k] === 'string') c[k] = f[k].trim(); return whole(c); };
 export const parseCfg = s => { const g = k => { const m = String(s || '').match(new RegExp(k + '["\']?\\s*[:=]\\s*["\']([^"\']+)')); return m ? m[1].trim() : ''; };
   return { apiKey: g('apiKey'), authDomain: g('authDomain'), databaseURL: g('databaseURL'), projectId: g('projectId'), appId: g('appId') }; };
 const within = (p, ms, msg) => Promise.race([p, new Promise((_, no) => setTimeout(() => no(new Error(msg)), ms))]);
@@ -126,7 +130,7 @@ async function signIn(redirect) {
     const r = await U.signInWithPopup(auth, p); connect(r.user);
   } catch (e) { console.error('[sync]', e); problem = explain(e); popFailed = /popup|cancelled/.test(String(e?.code)); state = 'signin'; paint(); }
 }
-async function stop() { ls.del(CFG); try { if (auth) await sdk[1].signOut(auth); } catch {} try { await app?.kill(); } catch {} location.reload(); }
+async function stop() { ls.del(CFG); ls.set(OFF, '1'); try { if (auth) await sdk[1].signOut(auth); } catch {} try { await app?.kill(); } catch {} location.reload(); }
 
 // ---------- الواجهة: زر الحالة في كل صفحة (data-sync-open مع data-sync-label)، ونافذة الإعداد
 export function syncLabel() { return state === 'on' ? (online ? 'المزامنة تعمل' : 'المزامنة: بلا اتصال الآن') : state === 'wait' ? 'المزامنة: جارٍ الاتصال…' : state === 'err' ? 'المزامنة متعثّرة' : state === 'signin' ? 'المزامنة: ادخل بحساب قوقل' : 'المزامنة بين الأجهزة'; }
@@ -167,10 +171,11 @@ function build() {
     <div class="gs-err" data-gs="err" hidden></div>
     <div class="gs" style="padding:0;overflow:visible" data-gs="setup">
       <p>تقدّمك محفوظ الآن في هذا المتصفح فقط. بعد التفعيل يُحفظ في قاعدة بيانات <bdi dir="ltr">Firebase</bdi> خاصة بك، وكل علامة تضعها تصل أجهزتك الأخرى في لحظتها، في البوابتين.</p>
-      <label><span>1. الصق <bdi dir="ltr">firebaseConfig</bdi> كاملاً</span><textarea data-gs="cfg" spellcheck="false" autocomplete="off" placeholder='apiKey: "…", projectId: "…", databaseURL: "…"'></textarea></label>
-      <label><span>2. رابط قاعدة البيانات (يُملأ تلقائياً إن كان في النص)</span><input data-gs="url" type="url" spellcheck="false" autocomplete="off" placeholder="https://…-default-rtdb.….firebasedatabase.app"></label>
+      <p data-gs="fromRepo" hidden>إعداد المزامنة موجود في مستودع موقعك، فاضغط «فعّل المزامنة» ثم ادخل بحساب قوقل.</p>
+      <label data-gs="cfgL"><span>1. الصق <bdi dir="ltr">firebaseConfig</bdi> كاملاً</span><textarea data-gs="cfg" spellcheck="false" autocomplete="off" placeholder='apiKey: "…", projectId: "…", databaseURL: "…"'></textarea></label>
+      <label data-gs="urlL"><span>2. رابط قاعدة البيانات (يُملأ تلقائياً إن كان في النص)</span><input data-gs="url" type="url" spellcheck="false" autocomplete="off" placeholder="https://…-default-rtdb.….firebasedatabase.app"></label>
       <button type="button" data-gs="on">فعّل المزامنة</button>
-      <p class="gs-dim">الإعداد يُحفظ في هذا المتصفح فقط، وتكرّره مرة واحدة في كل جهاز. تقدّمك الحالي لا يُمسح: ما على الجهاز وما في القاعدة يُدمجان.</p>
+      <p class="gs-dim" data-gs="cfgNote">الإعداد يُحفظ في هذا المتصفح فقط، وتكرّره مرة واحدة في كل جهاز (أو اكتبه في مستودعك مرة واحدة: <bdi dir="ltr">data/site.json</bdi>). تقدّمك الحالي لا يُمسح: ما على الجهاز وما في القاعدة يُدمجان.</p>
     </div>
     <div class="gs" style="padding:0;overflow:visible" data-gs="signin">
       <p>ادخل بحساب قوقل نفسه في كل أجهزتك. سجلّك يُحفظ في مسار خاص بحسابك، لا يقرؤه ولا يكتب فيه أحد غيرك.</p>
@@ -192,10 +197,10 @@ function build() {
     else if (b.dataset.gs === 'off') stop();
     else if (b.dataset.gs === 'google') signIn(false);
     else if (b.dataset.gs === 'redirect') signIn(true);
-    else if (b.dataset.gs === 'on') { const c = q('cfg').value.trim() ? parseCfg(q('cfg').value) : cfgOf() || {}; if (q('url').value.trim()) c.databaseURL = q('url').value.trim().replace(/\/+$/, '');
+    else if (b.dataset.gs === 'on') { const c = q('cfg').value.trim() ? parseCfg(q('cfg').value) : cfgOf() || await repoCfg() || {}; if (q('url').value.trim()) c.databaseURL = q('url').value.trim().replace(/\/+$/, '');
       if (!c.apiKey || !c.projectId || !c.databaseURL) { problem = { text: 'الإعداد ناقص. تأكد أن النص فيه apiKey وprojectId، وأن رابط قاعدة البيانات مكتوب.' }; return paint(); }
       try { await app?.kill(); } catch {} app = null; fb = null; auth = null; for (const k of Object.keys(last)) { delete last[k]; delete sent[k]; }
-      if (!ls.set(CFG, JSON.stringify(c))) { problem = { text: 'تعذّر الحفظ في هذا المتصفح.' }; return paint(); }
+      if (!ls.set(CFG, JSON.stringify(c))) { problem = { text: 'تعذّر الحفظ في هذا المتصفح.' }; return paint(); } ls.del(OFF);
       q('cfg').value = ''; start(c); } });
 }
 function paint() {
@@ -208,10 +213,13 @@ function paint() {
   q('state').textContent = 'الحالة: ' + (state === 'on' ? (online ? 'تعمل' : 'بلا اتصال الآن، وتُستكمل عند عودته') : state === 'wait' ? 'جارٍ الاتصال…' : state === 'err' ? 'متعثّرة' : state === 'signin' ? 'بانتظار الدخول بحساب قوقل' : 'متوقفة');
   q('setup').hidden = running || signin; q('signin').hidden = !signin; q('running').hidden = !running;
   q('google').disabled = state === 'wait'; q('redirect').hidden = !popFailed;
+  q('fromRepo').hidden = !fromRepo; q('cfgL').hidden = q('urlL').hidden = q('cfgNote').hidden = !!fromRepo;
   q('whoLine').hidden = !who; q('who').textContent = who;
   const er = q('err'); er.hidden = !problem; er.textContent = problem?.text || ''; if (problem?.code) er.insertAdjacentHTML('beforeend', `<code>${problem.code.replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]))}</code>`);
 }
-export function openSync() { if (!dlg) build(); if (state !== 'err') problem = ''; paint(); if (!dlg.open) dlg.showModal(); }
+let fromRepo = false;
+export function openSync() { if (!dlg) build(); if (state !== 'err') problem = ''; paint(); if (!dlg.open) dlg.showModal();
+  if (!cfgOf()) repoCfg().then(c => { fromRepo = !!c; paint(); }); }
 
 // onChange(id) يُستدعى بعد أن يُكتب في السجل المحلي تغيير جاء من جهاز آخر: على الصفحة أن تعيد قراءة سجلها وترسمه
 let wired = false;
@@ -220,5 +228,7 @@ export function initSync(onChange) {
   if (wired) return paint(); wired = true;
   document.addEventListener('click', e => { if (e.target.closest('[data-sync-open]')) { e.preventDefault(); openSync(); } });
   paint(); const c = cfgOf(); if (c) start(c);
+  // جهاز جديد والإعداد في المستودع: يُؤخذ منه، فلا يبقى إلا الدخول بحساب قوقل (إلا إن أُوقفت المزامنة في هذا الجهاز)
+  else if (!ls.get(OFF)) repoCfg().then(rc => { if (rc && !cfgOf() && ls.set(CFG, JSON.stringify(rc))) start(rc); }).catch(() => {});
   addEventListener('online', async () => { const c = cfgOf(); if (state !== 'err' || !c) return; try { await app?.kill(); } catch {} app = null; fb = null; start(c); }); // تعثّر التحميل بلا إنترنت: نعيد المحاولة عند عودته
 }
