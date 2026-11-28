@@ -12,15 +12,15 @@
   "doors": {
     "anime": {
       "tall": "art/anime-tall.webp",
-      "wide": "art/anime-wide.webp"
+      "wide": "art/anime-mobile.webp"
     },
     "films": {
       "tall": "art/films-tall.webp",
-      "wide": "art/films-wide.webp"
+      "wide": "art/films-mobile.webp"
     },
     "games": {
       "tall": "art/games-tall.webp",
-      "wide": "art/games-wide.webp"
+      "wide": "art/games-mobile.webp"
     }
   }
 }
