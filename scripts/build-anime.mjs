@@ -142,6 +142,9 @@ if (tmdbOk) try { const t = fribb[rd(new URL('door.json', SRC), {}).mal]?.tm, T 
     door = { poster: best?.file_path || T.poster, backdrop: T.backdrop, textless: !!best }; } } catch (e) { report.problems.push(`غلاف البوابة: ${e.message}`); }
 // عند تعذّر TMDB كله يبقى ما في الكتالوج السابق من صور ومنصات
 const prevCat = rd(new URL('catalog.json', OUT), null), prevBy = new Map((prevCat?.anime || []).map(a => [a.id, a]));
+// at: متى دخل العمل قائمتك (ثوانٍ منذ 1970)، لترتيب «آخر ما أضفته». يُحمل من البناء السابق، وما لم يكن له تاريخ قبل هذا أخذه من تواريخ إضافتك في
+// MyAnimeList (scripts/anime-added-seed.json، لقطة مرة واحدة)، وما يدخل بعدها يأخذ وقت أول بناء يراه
+const addedSeed = rd(new URL('anime-added-seed.json', import.meta.url), {}), nowSec = Math.floor(Date.now() / 1000);
 if (!door && prevCat?.door) door = prevCat.door;
 if (prevCat && tmdbOk && !tv.size && !movie.size) { tmdbOk = false; Object.assign(providers, prevCat.providers || {}); report.problems.push('TMDB لم يرد بشيء: تبقى صور الكتالوج السابق ومنصاته'); }
 
@@ -188,7 +191,7 @@ const texts = Array.from({ length: 32 }, () => ({}));
 const anime = all.map((id, ord) => { const r = cache.get(id)?.d, b = basics.get(id), ad = adult.has(id), m = fribb[id] || {}, t = m.tm, prev = prevBy.get(id);
   const T = t && tmdbOk ? (t.k === 'tv' ? tv.get(t.id) : movie.get(t.id)) : null, S = T?.seasons?.[t?.s];
   const a = { id, t: r?.title || b?.title || String(id), type: r?.type || b?.type || '', eps: r ? r.eps : b?.eps || 0 };
-  if (inList.has(id)) a.ord = ord; else a.x = 1;                 // x: ليس في القائمة، دخل لإكمال سلسلته
+  if (inList.has(id)) { a.ord = ord; a.at = prev?.at || addedSeed[id] || nowSec; } else a.x = 1;                 // x: ليس في القائمة، دخل لإكمال سلسلته
   if (ad) a.ad = 1;                                               // +18: يخفيه فلتر العين، ومعلوماته كاملة كغيره (E73)
   if (r) { if (r.en && r.en !== a.t) a.en = r.en; if (r.year) a.y = r.year; if (r.season) a.se = r.season; a.st = r.status; if (r.from) a.from = r.from;
     if (r.img) a.img = r.img; else if (r.iu) a.iu = r.iu; if (r.score) { a.sc = r.score; a.sv = r.votes; } if (r.dur) a.dur = r.dur;   // iu: غلاف من AniList حين جاء العمل منه
