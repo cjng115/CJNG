@@ -801,13 +801,8 @@ const M2S = Object.fromEntries(Object.entries(S2M).map(([a, b]) => [b, a])), MTY
 const MSY = { user: '', state: '', busy: 0, msg: '', ok: false, need: '' };
 const malMeta = () => { try { const m = JSON.parse(store.get(MALK)); return m && typeof m === 'object' ? m : {}; } catch { return {}; } };
 const malKeep = m => store.set(MALK, JSON.stringify(m));
-// «آخر ما أضفته»: متى أضفت كل عمل، من MyAnimeList (created_at)، يُحفظ في هذا المتصفح ويُحدَّث بعد المزامنة وبعد كل إضافة.
-// ما أضفته للتو ولم يصل تاريخه بعد يُعدّ الأحدث
-const WHENK = 'animeg.addedat'; let ADDAT = (() => { try { const j = JSON.parse(store.get(WHENK)); return j?.at ? j : {}; } catch { return {}; } })();
-const whenAdded = a => ADDAT.at?.[a.id] || (a.pending || (ADDAT.t && me(a.id)) ? 4e9 : 0);
-async function malAdded() { if (!malMeta().on || !ghToken()) return; const miss = Object.keys(P.a).some(id => !ADDAT.at?.[id]);
-  if (Date.now() - (ADDAT.t || 0) < (miss ? 60e3 : 6 * 36e5)) return;
-  try { const { at } = await malApi({ action: 'added' }); if (at && Object.keys(at).length) { ADDAT = { at, t: Date.now() }; store.set(WHENK, JSON.stringify(ADDAT)); if (ui.sort === 'add') renderGrid(); } } catch {} }
+// «آخر ما أضفته»: at يكتبه البناء (متى دخل العمل قائمتك)، وما أضفته للتو ولم يُبنَ بعد يُعدّ الأحدث
+const whenAdded = a => a.at || (a.pending ? 4e9 : 0);
 const mkey = x => x ? `${x.s}|${x.s === 'completed' ? 'c' : x.p || 0}|${x.r || 0}` : '';
 async function malApi(body) { const base = await accountsServer(); if (!base) throw Object.assign(new Error('خادم «حساباتي» لم يُجهَّز بعد (accounts في data/site.json).'), { setup: true });
   if (!ghToken()) throw Object.assign(new Error('ربط MyAnimeList يحتاج رمز GitHub على هذا الجهاز: به يعرفك الخادم صاحباً للموقع.'), { need: 'gh' });
@@ -831,7 +826,7 @@ async function malPushLocal() { const meta = malMeta(); if (!meta.on || !meta.ba
     if (l) out.push(malOut(id, l)); else dels.push({ id, del: 1 }); }
   if (!out.length && !dels.length) return; const send = dels.length > 20 ? out : [...out, ...dels];
   MSY.busy = 1; try { const ok = await malSend(send), m = malMeta(); m.base ||= {};
-    for (const x of send) if (ok.has(x.id)) { if (x.del) delete m.base[x.id]; else m.base[x.id] = mkey(P.a[x.id]); } malKeep(m); if (out.some(x => !ADDAT.at?.[x.id])) setTimeout(() => malAdded(), 1500); }
+    for (const x of send) if (ok.has(x.id)) { if (x.del) delete m.base[x.id]; else m.base[x.id] = mkey(P.a[x.id]); } malKeep(m); }
   catch (e) { MSY.msg = esc(e.message); MSY.ok = false; } finally { MSY.busy = 0; if ($('#imp')?.open) drawImp(); } }
 // المزامنة الكاملة: تسحب قائمتك من MyAnimeList وتقارنها بسجلّك وباللقطة
 async function malSync(why) { if (malRun) return malRun; return malRun = (async () => { const meta = malMeta(); if (!meta.on || !ghToken()) return;
@@ -862,7 +857,7 @@ async function malSync(why) { if (malRun) return malRun; return malRun = (async 
     let wrote = 0; if (unknown.length) try { wrote = await catalogAdd(unknown); if (wrote) renderAll(true); } catch (e) { notes.push(esc(e.message)); }
     const got = take.length + localDel.length, sent = ok.size;
     MSY.ok = true; MSY.msg = (got || sent || why === 'now' || why === 'first' ? `تمّت المزامنة: ${got ? `وصل من ${ltr('MyAnimeList')} ${nWorks(got)}` : `لا جديد من ${ltr('MyAnimeList')}`}${sent ? `، وأُرسل إليه ${nWorks(sent)}` : ''}${wrote ? `، وكُتب في قائمة الموقع ${nWorks(wrote)} لم تكن فيها` : ''}.` : '') + (notes.length ? ' ' + notes.join(' ') : '');
-    if (got && !$('#imp')?.open) toast(`وصل من ${ltr('MyAnimeList')} ${nWorks(got)}`); malAdded(); }
+    if (got && !$('#imp')?.open) toast(`وصل من ${ltr('MyAnimeList')} ${nWorks(got)}`); }
   catch (e) { MSY.ok = false; MSY.msg = esc(e.message || 'تعذّرت المزامنة.'); MSY.need = e.malNeed || ''; if (e.malNeed === 'link') { const m = malMeta(); m.on = false; malKeep(m); } }
   finally { MSY.busy = 0; malRun = null; if ($('#imp')?.open) drawImp(); } })(); }
 async function malLink() { if (!ghToken()) { openKeys('gh', 'ربط MyAnimeList يحتاج رمز GitHub على هذا الجهاز: به يعرفك الخادم صاحباً للموقع.', r => { drawImp(); if (r.gh) malLink(); }); return; }
