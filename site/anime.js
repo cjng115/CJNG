@@ -201,7 +201,20 @@ const gfindHTML = k => GQ[k] == null ? `<button type="button" class="gfind" data
   : `<label class="gfind on">${ic('search')}<input type="search" enterkeyhint="search" autocomplete="off" data-gq="${k}" value="${esc(GQ[k])}" placeholder="ابحث عن تصنيف" aria-label="ابحث عن تصنيف"><button type="button" class="gx" data-act="gclose" data-k="${k}" aria-label="أغلق البحث">${ic('x')}</button></label>`;
 const grail = k => k === 'mood' ? $('#tonight .tn-c') : $('#gchips');
 const gdraw = k => k === 'mood' ? renderTonight(false) : renderGenres(true), gshut = k => { GQ[k] = null; gdraw(k); };
-function applyGq(k) { const box = grail(k); if (!box) return; const q = gfold(GQ[k] || ''), note = k === 'mood' ? $('#tonight .tn-mood > .gnote') : $('#gnote'); let seen = 0;
+// قائمة التصنيفات المنسدلة (أطلس التصنيفات): حين تُفتح العدسة تنسدل تحت الشريط كل تصنيفاته في شبكة كالنجوم، لكل تصنيف لونه وعدده
+// وشعاع بطول نصيبه من أكثرها، والكتابة تصفّيها مع الشريط. لمسة تختار بالفعل نفسه الذي في الشريط (amood أو genre)، و↓ من الحقل يدخلها
+function gdeck(k, box, q) { let deck = document.querySelector(`.gdeck[data-k="${k}"]`); if (GQ[k] == null) { deck?.remove(); return; }
+  if (!deck) { deck = document.createElement('div'); deck.className = 'gdeck'; deck.dataset.k = k; deck.setAttribute('role', 'group'); deck.setAttribute('aria-label', 'كل التصنيفات'); }
+  if (deck.previousElementSibling !== box) box.after(deck);
+  const bs = [...box.querySelectorAll('button[data-g]')].filter(b => +b.dataset.g >= 0 && (!q || gmatch(+b.dataset.g, q)));
+  if (!bs.length) { deck.hidden = true; deck.innerHTML = ''; return; } deck.hidden = false;
+  const max = Math.max(1, ...bs.map(b => +b.dataset.c || 0)), act = k === 'mood' ? 'amood' : 'genre', key = q + '|' + bs.map(b => b.dataset.g + b.getAttribute('aria-pressed')).join();
+  if (deck.dataset.key === key) return; const fresh = !deck.dataset.key; deck.dataset.key = key;
+  const any = box.querySelector('button[data-g="-1"]');
+  deck.innerHTML = `<div class="gd-h"><span>${q ? `يطابق بحثك ${num(bs.length)}` : `كل التصنيفات · ${num(bs.length)}`}</span>${!q && any ? `<button type="button" class="gd-any" data-act="${act}" data-g="-1" aria-pressed="${any.getAttribute('aria-pressed')}">${esc(any.firstChild.textContent)}</button>` : ''}</div>
+    <div class="gd-l${fresh ? ' in' : ''}">${bs.map((b, i) => { const g = +b.dataset.g, c = +b.dataset.c || 0, en = D.genres[g] || '', ar = genreOf(en);
+      return `<button type="button" data-act="${act}" data-g="${g}" aria-pressed="${b.getAttribute('aria-pressed')}" style="--gh:${ghue(en)};--gw:${Math.max(6, Math.round(100 * c / max))}%;--i:${Math.min(i, 24)}"><i aria-hidden="true"></i><span><bdi>${esc(ar)}</bdi>${en && en !== ar ? `<small dir="ltr">${esc(en)}</small>` : ''}</span>${b.dataset.c ? `<b>${num(c)}</b>` : ''}</button>`; }).join('')}</div>`; }
+function applyGq(k) { const box = grail(k); if (!box) return; const q = gfold(GQ[k] || ''); gdeck(k, box, q); const note = k === 'mood' ? $('#tonight .tn-mood > .gnote') : $('#gnote'); let seen = 0;
   for (const b of box.querySelectorAll('button[data-g]')) { const g = +b.dataset.g, on = b.getAttribute('aria-pressed') === 'true', show = !q || (g >= 0 && (on || gmatch(g, q))); b.hidden = !show; if (show && g >= 0 && !on) seen++; }
   // ما بقي يبدأ من أول الشريط، وسهما التمرير يُعاد حسابهما على ما بقي (rail.js يحسبهما عند التمرير)
   if (GQ[k] != null) { box.scrollLeft = 0; box.dispatchEvent(new Event('scroll')); }
@@ -228,7 +241,7 @@ function pickTonight(fresh) { const all = D.list.filter(tonightOk); let best = 0
 function renderTonight(fresh) { const box = $('#tonight'); if (!box) return; if (!hasLog()) { box.innerHTML = ''; return; }   // وأعمال +18 فيه والعين مفتوحة وحدها (tonightOk، E78)
   const n = new Map(); for (const a of D.list) if (tonightOk(a)) for (const g of a.g || []) n.set(g, (n.get(g) || 0) + 1); amoods = amoods.filter(g => n.has(g));
   const { a, best } = pickTonight(fresh), total = D.list.filter(tonightOk).length; if (!total) { box.innerHTML = ''; return; }
-  const chip = (g, name, c) => `<button type="button" data-act="amood" data-g="${g}" aria-pressed="${g < 0 ? !amoods.length : amoods.includes(g)}"${g >= 0 ? ` style="--gh:${ghue(D.genres[g])}"` : ''}>${name}<b>${num(c)}</b></button>`;
+  const chip = (g, name, c) => `<button type="button" data-act="amood" data-g="${g}" data-c="${c}" aria-pressed="${g < 0 ? !amoods.length : amoods.includes(g)}"${g >= 0 ? ` style="--gh:${ghue(D.genres[g])}"` : ''}>${name}<b>${num(c)}</b></button>`;
   const w = a && D.wby.get(a.w), d = w ? pos(w, a.id) : null, wn = w ? (ui.names === 'english' && w.en ? w.en : w.name) : '', meta = a ? [typeOf(a), a.y || '', a.type !== 'Movie' && a.eps ? nEps(a.eps) : '', a.sc ? `${ltr('MyAnimeList')} ${a.sc.toFixed(2)}` : ''].filter(Boolean).join(' · ') : '';
   const gs = a ? [...(a.g || []).filter(g => amoods.includes(g)), ...(a.g || []).filter(g => !amoods.includes(g))].slice(0, 3).map(g => genreOf(D.genres[g])).join('، ') : '';
   // أقرب ما وُجد حين لا عمل يجمع المزاج كله: يقال ما فيه منه وما ليس فيه بأسمائها، فلا يُظن أنه أخطأ (E76)
@@ -280,7 +293,7 @@ const gsay = () => { const l = ui.genres.map(g => genreOf(D.genres[g])); return 
 function renderGenres(jump) { const box = $('#gchips'); if (!box) return; const sel = ui.genres, n = new Map();
   for (const a of D.pool || []) if (hasAll(a)) for (const g of a.g || []) if (!sel.includes(g)) n.set(g, (n.get(g) || 0) + 1);
   const gs = [...n].sort((a, b) => b[1] - a[1] || a[0] - b[0]);
-  const x = box.scrollLeft, chip = (g, name, c) => `<button type="button" data-act="genre" data-g="${g}" aria-pressed="${g < 0 ? !sel.length : sel.includes(g)}"${g >= 0 ? ` style="--gh:${ghue(D.genres[g])}"` : ''}>${name}${c != null ? `<b>${num(c)}</b>` : ''}</button>`;
+  const x = box.scrollLeft, chip = (g, name, c) => `<button type="button" data-act="genre" data-g="${g}"${c != null ? ` data-c="${c}"` : ''} aria-pressed="${g < 0 ? !sel.length : sel.includes(g)}"${g >= 0 ? ` style="--gh:${ghue(D.genres[g])}"` : ''}>${name}${c != null ? `<b>${num(c)}</b>` : ''}</button>`;
   box.innerHTML = gfindHTML('list') + chip(-1, 'كل التصنيفات') + sel.map(g => chip(g, genreOf(D.genres[g]))).join('') + gs.map(([g, c]) => chip(g, genreOf(D.genres[g]), c)).join(''); applyGq('list');
   if (jump) box.scrollTo({ left: 0, behavior: calm ? 'auto' : 'smooth' }); else box.scrollLeft = x; }
 const moreIO = new IntersectionObserver(es => { if (!es.some(e => e.isIntersecting)) return; moreIO.disconnect(); const from = ui.shown; ui.shown += 60; const more = $('#more'); if (!more) return;
@@ -650,7 +663,11 @@ async function addLive(btn) { const box = btn.closest('.pkadd'), id = +box.datas
   catch (e) { for (const b of btns) b.disabled = false; btn.innerHTML = label; msg.innerHTML = esc(addFail(e)); keysThen(e, again, () => {}); } }
 document.addEventListener('input', e => { const k = e.target.dataset?.gq; if (!k) return; GQ[k] = e.target.value; applyGq(k); });
 // حقل فارغ يُطوى حين يخرج منه التركيز، بعد لحظة وما دام الضغط ليس على الشريط: فلمسة على تصنيف تصل أولاً (gpick يطويه بنفسه)
-document.addEventListener('focusout', e => { const k = e.target.dataset?.gq; if (!k) return; setTimeout(() => { const r = grail(k); if (GQ[k] === '' && r && !r.contains(document.activeElement) && !r.matches(':active, .rl-drag')) gshut(k); }, 160); });
+document.addEventListener('focusout', e => { const k = e.target.dataset?.gq; if (!k) return; setTimeout(() => { const r = grail(k); const dk = document.querySelector(`.gdeck[data-k="${k}"]`); if (GQ[k] === '' && r && !r.contains(document.activeElement) && !r.matches(':active, .rl-drag') && !(dk && (dk.contains(document.activeElement) || dk.matches(':active')))) gshut(k); }, 160); });
+document.addEventListener('keydown', e => { const dk = e.target.closest?.('.gdeck'); if (dk && e.key === 'Escape') { e.preventDefault(); grail(dk.dataset.k)?.querySelector('input[data-gq]')?.focus(); return; }
+  if (dk && /^Arrow(Up|Down|Left|Right)$/.test(e.key)) { const all = [...dk.querySelectorAll('button')], i = all.indexOf(e.target), cols = Math.max(1, Math.round(dk.querySelector('.gd-l').clientWidth / (e.target.offsetWidth || 1))), inL = e.target.closest('.gd-l');
+    const step = { ArrowDown: inL ? cols : 1, ArrowUp: inL ? -cols : -1, ArrowLeft: 1, ArrowRight: -1 }[e.key], j = i + step; e.preventDefault(); if (j < 0) grail(dk.dataset.k)?.querySelector('input[data-gq]')?.focus(); else all[Math.min(j, all.length - 1)]?.focus(); return; }
+  const k0 = e.target.dataset?.gq; if (k0 && e.key === 'ArrowDown') { const f = document.querySelector(`.gdeck[data-k="${k0}"] .gd-l button`); if (f) { e.preventDefault(); f.focus(); } return; } });
 document.addEventListener('keydown', e => { const k = e.target.dataset?.gq; if (!k || (e.key !== 'Enter' && e.key !== 'Escape')) return; e.preventDefault();
   const first = e.key === 'Enter' && [...grail(k).querySelectorAll('button[data-g]')].find(b => !b.hidden && +b.dataset.g >= 0 && b.getAttribute('aria-pressed') !== 'true');
   if (first) gpick(k, +first.dataset.g); else if (e.key === 'Escape' || !gfold(GQ[k] || '')) gshut(k);
