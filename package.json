@@ -1,8 +1,9 @@
 {
   "name": "watch-portals",
   "private": true,
-  "description": "يحتاجه Netlify لدالة «حساباتي» وحدها (مكتبة psn-api لسحب PlayStation). الموقع نفسه لا يحتاج تثبيت شيء.",
+  "description": "يحتاجه Netlify لدالتي «حساباتي» وMyAnimeList وحدهما (psn-api لسحب PlayStation، و@netlify/blobs لحفظ رمز MyAnimeList في مخزن المشروع). الموقع نفسه لا يحتاج تثبيت شيء.",
   "dependencies": {
+    "@netlify/blobs": "11.1.7",
     "psn-api": "2.18.1"
   }
 }

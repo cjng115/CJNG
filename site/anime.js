@@ -10,7 +10,8 @@ import { initSync, touch as syncTouch } from './sync.js?v=__BUILD__';
 import { miniDoor, portalBack } from './portal.js?v=__BUILD__';
 import { prepare, find, fold } from './find.js?v=__BUILD__';
 import { clock, spoken } from './count.js?v=__BUILD__';
-import { tmdbKey, ghToken, openKeys, repoOf } from './keys.js?v=__BUILD__';   // مفتاحا الموقع في هذا المتصفح، ونافذتهما
+import { tmdbKey, ghToken, openKeys, repoOf } from './keys.js?v=__BUILD__';
+import { accountsServer } from './site-config.js?v=__BUILD__';   // خادم «حساباتي» على Netlify: به يُربط MyAnimeList باتجاهين   // مفتاحا الموقع في هذا المتصفح، ونافذتهما
 import { addAnime, arabicFind } from './local-api.js?v=__BUILD__';   // الإضافة كتابةٌ في قائمة المستودع، والاسم العربي من TMDB
 import { readAniList } from './imports.js?v=__BUILD__';
 import { watchBuild, waitBuild, waiting } from './building.js?v=__BUILD__';
@@ -66,7 +67,7 @@ const sane = x => { const o = {}; if (!x || typeof x !== 'object') return null; 
   for (const k of ['b', 'e']) if (/^\d{4}(-\d{2}(-\d{2})?)?$/.test(x[k] || '')) o[k] = x[k]; return o; };
 function load() { let s; try { s = JSON.parse(store.get(KEY)); } catch {} P = { v: 1, a: {} };
   if (s && typeof s.a === 'object' && s.a) for (const [k, v] of Object.entries(s.a)) { const o = sane(v); if (o && /^\d+$/.test(k)) P.a[k] = o; } }
-const save = () => { store.set(KEY, JSON.stringify(P)); syncTouch('anime'); };
+const save = () => { store.set(KEY, JSON.stringify(P)); syncTouch('anime'); malSoon(); };
 const me = id => P.a[id];
 const hasLog = () => { for (const _ in P.a) return true; return false; };
 load();
@@ -780,6 +781,7 @@ function impHTML() { const m = IMP.mal, log = hasLog(), n = Object.keys(P.a).len
     : `<p class="lbl">يسحب حالة كل عمل وحلقاته وتقييمه من حسابك، للقراءة فقط: الموقع لا يغيّر شيئاً في حسابك هناك. تضغط الزر، يظهر رمز، توافق عليه في صفحة ${ltr('SIMKL')}. رمز الدخول يبقى في هذا المتصفح فقط.</p><div class="acts"><button class="btn pri" data-act="sk-start">اربط ${ltr('SIMKL')}</button></div>`;
   return `<h2 id="imp-h">قائمتي وحساباتي</h2>
     <section class="sec"><h3>${ltr('MyAnimeList')}</h3>${malBox}</section>
+    ${malHTML()}
     <section class="sec"><h3>${ltr('AniList')}</h3><p class="lbl">قائمتك في ${ltr('AniList')} عامة، فيكفي اسم المستخدم كما في رابط صفحتك. تُقرأ للعرض هنا، ولا يتغير شيء في حسابك.</p>
       <div class="alrow"><input id="al-user" dir="ltr" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="username" aria-label="اسم المستخدم في AniList" value="${esc(IMP.al || '')}"><button class="btn pri" data-act="al-read" ${IMP.alBusy ? 'disabled' : ''}>${IMP.alBusy ? 'يُقرأ…' : 'اقرأ قائمتي'}</button></div></section>
     ${IMP.msg ? `<p class="msg${IMP.ok ? ' ok' : ''}" role="alert">${IMP.msg}</p>` : ''}
@@ -788,8 +790,95 @@ function impHTML() { const m = IMP.mal, log = hasLog(), n = Object.keys(P.a).len
     <section class="sec"><h3>مفاتيح الموقع</h3><p class="lbl">الإضافة والاستيراد يكتبان في قائمة الموقع برمز ${ltr('GitHub')}، والبحث بالاسم العربي بمفتاح ${ltr('TMDB')}. يُحفظان في هذا المتصفح وحده.</p><div class="acts"><button class="btn ghost" data-keys-open>مفاتيح الموقع</button></div></section>
     <section class="sec"><h3>نسخة من سجلّي</h3><p class="lbl">${log ? `في سجلّك ${nWorks(n)}.` : 'سجلّك فارغ على هذا الجهاز.'} النسخة ملف ${ltr('JSON')} فيه حالاتك وحلقاتك وتقييماتك وتواريخك.</p>
       <div class="acts"><button class="btn ghost" data-act="backup" ${log ? '' : 'disabled'}>نزّل نسخة</button>${store.get(KEY + '.bak') ? '<button class="btn quiet" data-act="restore">تراجع عن آخر استيراد</button>' : ''}</div></section>`; }
+
+// ---------- MyAnimeList باتجاهين (عبر خادم «حساباتي»: netlify/functions/mal.mjs)
+// ما تضيفه أو تغيّره هنا يُكتب في قائمتك في MyAnimeList، وما تغيّره هناك يُسحب إلى هنا. المقارنة بثلاث: سجلّك هنا، وقائمتك هناك، وآخر ما اتفقا عليه
+// (لقطة لكل عمل في هذا المتصفح، animeg.mal). ما تغيّر في طرف واحد منذ اللقطة يُنقل إلى الآخر، وما تغيّر في الطرفين معاً يغلب فيه الأبعد تقدّماً
+// ويكمل كلٌّ ما ينقص الآخر من تقييم وتاريخ. ما ليس في قائمة الموقع يُكتب فيها برمز GitHub كالاستيراد. والحذف ينتقل، إلا إن كثر (أكثر من 20 دفعة):
+// يُترك احتياطاً من خلل، ويُقال لك. أول مزامنة تحفظ قبلها نسخة من سجلّك («تراجع عن آخر استيراد»).
+const MALK = 'animeg.mal', S2M = { watching: 'watching', completed: 'completed', hold: 'on_hold', dropped: 'dropped', plan: 'plan_to_watch' };
+const M2S = Object.fromEntries(Object.entries(S2M).map(([a, b]) => [b, a])), MTYPE = { tv: 'TV', movie: 'Movie', ova: 'OVA', ona: 'ONA', special: 'Special', tv_special: 'TV Special', music: 'Music', pv: 'PV', cm: 'CM' };
+const MAL = { user: '', state: '', busy: 0, msg: '', ok: false, need: '' };
+const malMeta = () => { try { const m = JSON.parse(store.get(MALK)); return m && typeof m === 'object' ? m : {}; } catch { return {}; } };
+const malKeep = m => store.set(MALK, JSON.stringify(m));
+const mkey = x => x ? `${x.s}|${x.s === 'completed' ? 'c' : x.p || 0}|${x.r || 0}` : '';
+async function malApi(body) { const base = await accountsServer(); if (!base) throw Object.assign(new Error('خادم «حساباتي» لم يُجهَّز بعد (accounts في data/site.json).'), { setup: true });
+  if (!ghToken()) throw Object.assign(new Error('ربط MyAnimeList يحتاج رمز GitHub على هذا الجهاز: به يعرفك الخادم صاحباً للموقع.'), { need: 'gh' });
+  let r; try { r = await fetch(base + '/api/mal', { method: 'POST', headers: { 'content-type': 'application/json', authorization: 'Bearer ' + ghToken() }, body: JSON.stringify(body) }); }
+  catch { throw new Error('تعذّر الوصول إلى خادم «حساباتي». تحقق من الاتصال.'); }
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) { if (j.error === 'token' || j.error === 'owner') throw Object.assign(new Error('رمز GitHub على هذا الجهاز لا يكتب في مستودع الموقع.'), { need: 'gh' }); throw Object.assign(new Error(j.error || `خطأ ${r.status}`), { malNeed: j.need }); }
+  return j; }
+const malDate = d => /^\d{4}-\d{2}-\d{2}$/.test(d || '') ? d : undefined;
+const malOut = (id, x) => { const eps = D.by.get(id)?.eps || 0; return { id, s: S2M[x.s], p: x.s === 'completed' ? (eps || x.p || undefined) : (x.p || 0), r: x.r || 0, b: malDate(x.b), e: malDate(x.e) }; };
+// إرسال: دفعات حتى 40، وما لم يُرسل قبل مهلة الخادم يُعاد في الدفعة التالية
+async function malSend(items) { const ok = new Set(); let left = items;
+  for (let round = 0; left.length && round < 60; round++) { const part = left.slice(0, 40), r = await malApi({ action: 'push', items: part });
+    for (const d of r.done || []) if (d.ok) ok.add(d.id); const again = new Set(r.todo || []); left = [...part.filter(x => again.has(x.id)), ...left.slice(40)]; }
+  return ok; }
+let malT = 0, malRun = null;
+function malSoon() { try { if (!malMeta().on) return; } catch { return; } clearTimeout(malT); malT = setTimeout(() => malPushLocal().catch(() => {}), 2500); }
+// تغييرات هذا المتصفح منذ آخر اتفاق تُرسل وحدها (بلا سحب)، فيصل ما تفعله هنا إلى MyAnimeList خلال ثوانٍ
+async function malPushLocal() { const meta = malMeta(); if (!meta.on || !meta.base || MAL.busy || !ghToken()) return; const base = meta.base, out = [], dels = [];
+  for (const k of new Set([...Object.keys(P.a), ...Object.keys(base)])) { const id = +k, l = P.a[k] || null, kl = mkey(l); if (kl === (base[k] || '')) continue;
+    if (l) out.push(malOut(id, l)); else dels.push({ id, del: 1 }); }
+  if (!out.length && !dels.length) return; const send = dels.length > 20 ? out : [...out, ...dels];
+  MAL.busy = 1; try { const ok = await malSend(send), m = malMeta(); m.base ||= {};
+    for (const x of send) if (ok.has(x.id)) { if (x.del) delete m.base[x.id]; else m.base[x.id] = mkey(P.a[x.id]); } malKeep(m); }
+  catch (e) { MAL.msg = esc(e.message); MAL.ok = false; } finally { MAL.busy = 0; if ($('#imp')?.open) drawImp(); } }
+// المزامنة الكاملة: تسحب قائمتك من MyAnimeList وتقارنها بسجلّك وباللقطة
+async function malSync(why) { if (malRun) return malRun; return malRun = (async () => { const meta = malMeta(); if (!meta.on || !ghToken()) return;
+  clearTimeout(malT); MAL.busy = 1; if (why === 'now' || why === 'first') { MAL.msg = 'يُزامَن…'; MAL.ok = true; if ($('#imp')?.open) drawImp(); }
+  try { const { items } = await malApi({ action: 'list' }), M = new Map(); for (const x of items || []) if (M2S[x.s]) M.set(x.id, x);
+    const base = meta.base || {}, first = !meta.base;
+    if (!M.size && Object.keys(base).length > 5) throw new Error('رجعت قائمتك من MyAnimeList فارغة، فلم يُغيَّر شيء احتياطاً.');
+    if (first) store.set(KEY + '.bak', JSON.stringify(P));
+    const take = [], send = [], localDel = [], malDel = [], unknown = [];
+    for (const id of new Set([...M.keys(), ...Object.keys(P.a).map(Number), ...Object.keys(base).map(Number)])) {
+      const m = M.get(id), mo = m ? sane({ s: M2S[m.s], p: m.p, r: m.r, b: m.b, e: m.e }) : null, l = P.a[id] ? { ...P.a[id] } : null, km = mkey(mo), kl = mkey(l), kb = base[id];
+      if (km === kl) { if (km) { base[id] = km; if (l && mo) for (const k of ['b', 'e']) if (!l[k] && mo[k]) { P.a[id][k] = mo[k]; } } else delete base[id]; continue; }
+      const mCh = kb === undefined ? !!mo : km !== kb, lCh = kb === undefined ? !!l : kl !== kb;
+      let T; // ما يتفق عليه الطرفان: سجل، أو null (محذوف)
+      if (mCh && !lCh) T = mo; else if (lCh && !mCh) T = l;
+      else if (!l || !mo) T = l || mo;   // تغيّر الطرفان وأحدهما حذف: يبقى العمل
+      else { const w = simklAhead(l, mo) ? mo : l, x = w === mo ? l : mo; T = { ...w }; for (const k of ['r', 'b', 'e']) if (!T[k] && x[k]) T[k] = x[k]; }
+      if (mkey(T) !== kl || (T && l && ['r', 'b', 'e'].some(k => (T[k] || '') !== (l[k] || '')))) { if (T) { take.push([id, T]); if (!D.known.has(id) && m) unknown.push({ id, title: m.t, type: MTYPE[m.ty] || 'TV', eps: m.n, ad: m.ad }); } else localDel.push(id); }
+      if (mkey(T) !== km || (T && mo && ['r', 'b', 'e'].some(k => T[k] && !mo[k]))) { if (T) send.push(malOut(id, T)); else malDel.push({ id, del: 1 }); }
+      if (mkey(T) === km && mkey(T) === kl) { if (T) base[id] = mkey(T); else delete base[id]; } }
+    const notes = [];
+    if (localDel.length > 20) { notes.push(`${nWorks(localDel.length)} حُذفت من قائمتك في ${ltr('MyAnimeList')} ولم تُحذف هنا احتياطاً.`); localDel.length = 0; }
+    if (malDel.length > 20) { notes.push(`${nWorks(malDel.length)} ليست في سجلّك هنا ولم تُحذف من ${ltr('MyAnimeList')} احتياطاً.`); malDel.length = 0; }
+    const sending = new Set(send.map(x => x.id)); for (const [id, T] of take) { P.a[id] = T; if (!sending.has(id)) base[id] = mkey(T); } for (const id of localDel) { delete P.a[id]; delete base[id]; }
+    const ok = await malSend([...send, ...malDel]); for (const x of send) if (ok.has(x.id)) base[x.id] = mkey(P.a[x.id]); for (const x of malDel) if (ok.has(x.id)) delete base[x.id];
+    const nm = malMeta(); nm.base = base; nm.last = Date.now(); malKeep(nm);
+    if (take.length || localDel.length) { store.set(KEY, JSON.stringify(P)); syncTouch('anime'); renderAll(true); }
+    let wrote = 0; if (unknown.length) try { wrote = await catalogAdd(unknown); if (wrote) renderAll(true); } catch (e) { notes.push(esc(e.message)); }
+    const got = take.length + localDel.length, sent = ok.size;
+    MAL.ok = true; MAL.msg = (got || sent || why === 'now' || why === 'first' ? `تمّت المزامنة: ${got ? `وصل من ${ltr('MyAnimeList')} ${nWorks(got)}` : `لا جديد من ${ltr('MyAnimeList')}`}${sent ? `، وأُرسل إليه ${nWorks(sent)}` : ''}${wrote ? `، وكُتب في قائمة الموقع ${nWorks(wrote)} لم تكن فيها` : ''}.` : '') + (notes.length ? ' ' + notes.join(' ') : '');
+    if (got && !$('#imp')?.open) toast(`وصل من ${ltr('MyAnimeList')} ${nWorks(got)}`); }
+  catch (e) { MAL.ok = false; MAL.msg = esc(e.message || 'تعذّرت المزامنة.'); MAL.need = e.malNeed || ''; if (e.malNeed === 'link') { const m = malMeta(); m.on = false; malKeep(m); } }
+  finally { MAL.busy = 0; malRun = null; if ($('#imp')?.open) drawImp(); } })(); }
+async function malLink() { if (!ghToken()) { openKeys('gh', 'ربط MyAnimeList يحتاج رمز GitHub على هذا الجهاز: به يعرفك الخادم صاحباً للموقع.', r => { drawImp(); if (r.gh) malLink(); }); return; }
+  MAL.msg = ''; try { const { url } = await malApi({ action: 'login' }); location.href = url; } catch (e) { MAL.ok = false; MAL.msg = esc(e.message); drawImp(); } }
+async function malUnlink() { try { await malApi({ action: 'unlink' }); } catch {} const m = malMeta(); delete m.on; delete m.base; malKeep(m); MAL.user = ''; MAL.state = 'off'; MAL.ok = true; MAL.msg = 'فُصل حسابك في MyAnimeList: لم يعد شيء يُرسل إليه أو يُسحب منه.'; drawImp(); }
+function malBack(ok) { if (ok) { const m = malMeta(); m.on = true; malKeep(m); MAL.state = 'on'; } else { MAL.ok = false; MAL.msg = `لم يكتمل الربط بـ${ltr('MyAnimeList')}. جرّب «اربط» مرة أخرى.`; }
+  openImport(); if (ok) malSync('first'); }
+// حالة الربط تُسأل حين تُفتح النافذة، والمزامنة الكاملة عند فتح الصفحة وكل عشر دقائق ما دامت ظاهرة
+async function malState() { if (!ghToken()) { MAL.state = 'gh'; return drawImp(); } try { const r = await malApi({ action: 'status' }); MAL.user = r.user || ''; MAL.state = r.linked ? 'on' : 'off';
+  const m = malMeta(); if (r.linked && !m.on) { m.on = true; malKeep(m); } if (!r.linked && m.on) { m.on = false; malKeep(m); } }
+  catch (e) { MAL.state = e.malNeed === 'keys' ? 'keys' : e.setup ? 'setup' : 'err'; if (MAL.state === 'err') MAL.msg = esc(e.message); } drawImp(); }
+function malStart() { const tick = () => { if (document.visibilityState === 'visible' && malMeta().on && Date.now() - (malMeta().last || 0) > 5 * 60e3) malSync('auto'); };
+  setTimeout(tick, 1500); setInterval(tick, 10 * 60e3); document.addEventListener('visibilitychange', tick); }
+function malHTML() { const on = malMeta().on, st = MAL.state, last = malMeta().last;
+  const body = st === 'keys' ? `<p class="lbl">ينقص خادم «حساباتي» مفتاحا تطبيقك في ${ltr('MyAnimeList')}: ${ltr('MAL_CLIENT_ID')} و${ltr('MAL_CLIENT_SECRET')} في متغيرات مشروعك على ${ltr('Netlify')}.</p>`
+    : st === 'setup' ? `<p class="lbl">خادم «حساباتي» لم يُجهَّز بعد.</p>`
+    : st === 'gh' ? `<p class="lbl">الربط يحتاج رمز ${ltr('GitHub')} على هذا الجهاز.</p><div class="acts"><button class="btn ghost" data-keys-open>مفاتيح الموقع</button></div>`
+    : on || st === 'on' ? `<p class="lbl">مربوط${MAL.user ? ` بحساب ${ltr(MAL.user)}` : ''}: ما تضيفه أو تغيّره هنا يُكتب في قائمتك هناك خلال ثوانٍ، وما تغيّره هناك يصل إلى هنا عند فتح الصفحة وكل عشر دقائق.${last ? ` آخر مزامنة ${new Date(last).toLocaleString('ar-SA-u-nu-latn', { dateStyle: 'medium', timeStyle: 'short' })}.` : ''}</p>
+      <div class="acts"><button class="btn pri" data-act="mal-sync" ${MAL.busy ? 'disabled' : ''}>${MAL.busy ? 'يُزامَن…' : 'زامن الآن'}</button><button class="btn quiet" data-act="mal-unlink">افصل</button></div>`
+    : `<p class="lbl">اربط حسابك مرة واحدة، فيصير ما تضيفه أو تغيّره هنا (الحالة والحلقات والتقييم) يُكتب في قائمتك هناك، وما تغيّره هناك يصل إلى هنا.</p><div class="acts"><button class="btn pri" data-act="mal-link">اربط ${ltr('MyAnimeList')}</button></div>`;
+  return `<section class="sec"><h3>${ltr('MyAnimeList')}: ربط مباشر</h3>${body}${MAL.msg ? `<p class="msg${MAL.ok ? ' ok' : ''}" role="status">${MAL.msg}</p>` : ''}</section>`; }
 function drawImp() { $('#imp-body').innerHTML = impHTML(); }
-function openImport() { IMP.msg = ''; drawImp(); const d = $('#imp'); if (!d.open) { d.showModal(); history.pushState({ imp: 1, p: 1, n: depth() + 1 }, '', '#import'); } }
+function openImport() { IMP.msg = ''; if (!MAL.state || MAL.state === 'err') malState(); drawImp(); const d = $('#imp'); if (!d.open) { d.showModal(); history.pushState({ imp: 1, p: 1, n: depth() + 1 }, '', '#import'); } }
 async function readFile(f) { if (!f) return; IMP.msg = ''; try { IMP.mal = await readMalFile(f); if (!IMP.mal.entries.length) { IMP.mal = null; IMP.msg = 'الملف سليم لكنه بلا أعمال.'; } }
   catch (e) { IMP.mal = null; IMP.ok = false; IMP.msg = esc(e.message || 'تعذّرت قراءة الملف.'); } drawImp(); }
 // ما في الاستيراد وليس في الكتالوج يُكتب في قائمة المستودع (data/anime/list.json) برمز GitHub على هذا الجهاز، فيُبنى الموقع به. يعيد عدد ما كُتب
@@ -863,6 +952,9 @@ document.addEventListener('click', async e => { const t = e.target.closest('[dat
     case 'backup': { const u = URL.createObjectURL(new Blob([JSON.stringify({ exported: new Date().toISOString(), source: 'أنمياتي', ...P }, null, 1)], { type: 'application/json' })); Object.assign(document.createElement('a'), { href: u, download: `anime-log-${today}.json` }).click(); setTimeout(() => URL.revokeObjectURL(u), 4000); break; }
     case 'restore': { const b = store.get(KEY + '.bak'); if (!b) break; const now = JSON.stringify(P); store.set(KEY, b); store.set(KEY + '.bak', now); load(); save(); renderAll(); IMP.ok = true; IMP.msg = 'رجع سجلّك كما كان قبل آخر استيراد.'; drawImp(); break; }
     case 'sk-start': await skStart(); break;
+    case 'mal-link': await malLink(); break;
+    case 'mal-sync': await malSync('now'); break;
+    case 'mal-unlink': await malUnlink(); break;
     case 'sk-cancel': IMP.simkl = null; IMP.msg = ''; drawImp(); break;
     case 'sk-pull': await skPull(); break;
     case 'sk-raw': { const u = URL.createObjectURL(new Blob([JSON.stringify(IMP.sk.raw, null, 1)], { type: 'application/json' })); Object.assign(document.createElement('a'), { href: u, download: `simkl-anime-${today}.json` }).click(); setTimeout(() => URL.revokeObjectURL(u), 4000); break; }
@@ -904,7 +996,8 @@ function showGenre(g) { leaveTo(() => { ui.genres = [g]; ui.list = hasLog() ? 'a
 
 // ---------- الإقلاع
 const liftVeil = () => { const v = $('#veil'); if (!v || v.hidden) return; requestAnimationFrame(() => requestAnimationFrame(() => { v.classList.add('lift'); setTimeout(() => v.remove(), calm ? 0 : 800); })); };
-function route() { const h = location.hash.slice(1), st = at(); if (st.a || st.w) { if (st.w && !st.a && D.wby.has(+st.w)) setView('worlds'); apply(st); } else if (h === 'worlds') setView('worlds'); else if (h === 'import') { history.replaceState(null, '', location.pathname); openImport(); } else if (h === 'add') { history.replaceState(null, '', location.pathname); openAdd(); } }
+function route() { const h = location.hash.slice(1), st = at(); if (st.a || st.w) { if (st.w && !st.a && D.wby.has(+st.w)) setView('worlds'); apply(st); } else if (h === 'worlds') setView('worlds'); else if (h === 'import') { history.replaceState(null, '', location.pathname); openImport(); } else if (h === 'add') { history.replaceState(null, '', location.pathname); openAdd(); }
+  else if (h === 'mal-linked' || h === 'mal-fail') { history.replaceState(null, '', location.pathname); malBack(h === 'mal-linked'); } }
 try {
   const [cat, epi] = await Promise.all([get('catalog.json'), get('eps/index.json').catch(() => ({}))]); D.eps = epi || {}; D.at = cat.generatedAt || ''; watchBuild('anime', 'data/catalog.json'); D.base = cat.imageBase || D.base; D.mal = cat.malImages || D.mal; D.prov = cat.providers || {}; D.genres = cat.genres || [];
   for (const a of cat.anime || []) enroll(a);   // أعمال +18 (ad) تدخل all وحده حتى يُرفع الفلتر
@@ -917,5 +1010,5 @@ try {
   placeChips(); renderAll(); liftVeil();
   { const bar = $('.bar'), g = bar.querySelector('.gate'); new IntersectionObserver(([e]) => { const on = !e.isIntersecting; bar.classList.toggle('docked', on); g.tabIndex = on ? 0 : -1; g.setAttribute('aria-hidden', String(!on)); dockEye(on); }).observe($('.top')); }
   initSync(id => { if (id !== 'anime') return; load(); renderAll(true); if (open) { const box = $('#sheet-body .mine'); if (box) box.outerHTML = mineHTML(D.by.get(open)); drawXs(D.by.get(open)); } });
-  route();
+  route(); malStart();
 } catch (err) { $('#grid').innerHTML = '<p class="load">تعذّر تحميل القائمة. حدّث الصفحة.</p>'; liftVeil(); console.error(err); }
