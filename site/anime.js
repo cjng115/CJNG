@@ -135,7 +135,7 @@ document.body.insertAdjacentHTML('beforeend', `${SPRITE}
   <label class="search">${ic('search')}<span class="sr">ابحث في أنمياتي</span><input id="q" type="search" placeholder="ابحث: أنمي، استوديو، سنة" autocomplete="off" enterkeyhint="search"></label>
   <div class="views" role="group" aria-label="طريقة العرض"><button data-act="view" data-v="list" aria-pressed="true">الأعمال</button><button data-act="view" data-v="worlds" aria-pressed="false">السلاسل</button></div>${eyeBtn(true)}</div>
   <div class="lists" id="lists" role="group" aria-label="قوائمي"></div>
-  <div class="tools" id="tools"><select id="sort" aria-label="الترتيب"><option value="mal">ترتيب قائمتي</option><option value="score">تقييمي، الأعلى أولاً</option><option value="pub">تقييم MyAnimeList</option><option value="new">الأحدث صدوراً</option><option value="old">الأقدم صدوراً</option><option value="prog">الأقرب إلى الإكمال</option></select>
+  <div class="tools" id="tools"><select id="sort" aria-label="الترتيب"><option value="mal">ترتيب قائمتي</option><option value="add">آخر ما أضفته</option><option value="score">تقييمي، الأعلى أولاً</option><option value="pub">تقييم MyAnimeList</option><option value="new">الأحدث صدوراً</option><option value="old">الأقدم صدوراً</option><option value="prog">الأقرب إلى الإكمال</option></select>
     <select id="type" aria-label="النوع"><option value="">كل الأنواع</option></select>
     <div class="gchips" id="gchips" role="group" aria-label="التصنيفات" data-drag></div><p class="gnote" id="gnote" aria-live="polite" hidden></p>
     <select id="names" class="names" aria-label="لغة الأسماء"><option value="romaji">الأسماء كما في MyAnimeList</option><option value="english">الأسماء بالإنجليزية</option></select></div></nav>
@@ -272,7 +272,7 @@ function visible() { const log = hasLog(), list = log ? ui.list : 'all'; let l =
   if (q) { const hit = l.filter(a => hay(a).includes(q) || arHit(a, ui.q)); if (hit.length) l = hit; else { const r = find(D.prep ||= prepare(D.list.filter(mine), a => [a.t, a.en, ...(a.an || [])]), ui.q, { limit: 12, min: 50 }); const ids = new Set(r.hits.map(h => h.id)); l = l.filter(a => ids.has(a.id)); D.found = r.meant?.name || null; } }
   const sc = a => me(a.id)?.r || 0, ratio = a => { const m = me(a.id); return a.eps && m?.p ? m.p / a.eps : 0; }, ord = (a, b) => (a.ord ?? 1e9) - (b.ord ?? 1e9) || a.id - b.id;
   const S = { mal: ord, score: (a, b) => sc(b) - sc(a) || ord(a, b), pub: (a, b) => (b.sc || 0) - (a.sc || 0) || ord(a, b), new: (a, b) => (b.from || '0') < (a.from || '0') ? -1 : (b.from || '0') > (a.from || '0') ? 1 : ord(a, b),
-    old: (a, b) => (a.from || '9') < (b.from || '9') ? -1 : (a.from || '9') > (b.from || '9') ? 1 : ord(a, b), prog: (a, b) => ratio(b) - ratio(a) || ord(a, b) };
+    old: (a, b) => (a.from || '9') < (b.from || '9') ? -1 : (a.from || '9') > (b.from || '9') ? 1 : ord(a, b), prog: (a, b) => ratio(b) - ratio(a) || ord(a, b), add: (a, b) => whenAdded(b) - whenAdded(a) || ord(a, b) };
   return l.sort(S[ui.sort] || ord); }
 let cur = [];
 function renderGrid(keepShown) { cur = visible(); if (!keepShown) ui.shown = 60; const g = $('#grid'), log = hasLog();
@@ -801,6 +801,13 @@ const M2S = Object.fromEntries(Object.entries(S2M).map(([a, b]) => [b, a])), MTY
 const MSY = { user: '', state: '', busy: 0, msg: '', ok: false, need: '' };
 const malMeta = () => { try { const m = JSON.parse(store.get(MALK)); return m && typeof m === 'object' ? m : {}; } catch { return {}; } };
 const malKeep = m => store.set(MALK, JSON.stringify(m));
+// «آخر ما أضفته»: متى أضفت كل عمل، من MyAnimeList (created_at)، يُحفظ في هذا المتصفح ويُحدَّث بعد المزامنة وبعد كل إضافة.
+// ما أضفته للتو ولم يصل تاريخه بعد يُعدّ الأحدث
+const WHENK = 'animeg.addedat'; let ADDAT = (() => { try { const j = JSON.parse(store.get(WHENK)); return j?.at ? j : {}; } catch { return {}; } })();
+const whenAdded = a => ADDAT.at?.[a.id] || (a.pending || (ADDAT.t && me(a.id)) ? 4e9 : 0);
+async function malAdded() { if (!malMeta().on || !ghToken()) return; const miss = Object.keys(P.a).some(id => !ADDAT.at?.[id]);
+  if (Date.now() - (ADDAT.t || 0) < (miss ? 60e3 : 6 * 36e5)) return;
+  try { const { at } = await malApi({ action: 'added' }); if (at && Object.keys(at).length) { ADDAT = { at, t: Date.now() }; store.set(WHENK, JSON.stringify(ADDAT)); if (ui.sort === 'add') renderGrid(); } } catch {} }
 const mkey = x => x ? `${x.s}|${x.s === 'completed' ? 'c' : x.p || 0}|${x.r || 0}` : '';
 async function malApi(body) { const base = await accountsServer(); if (!base) throw Object.assign(new Error('خادم «حساباتي» لم يُجهَّز بعد (accounts في data/site.json).'), { setup: true });
   if (!ghToken()) throw Object.assign(new Error('ربط MyAnimeList يحتاج رمز GitHub على هذا الجهاز: به يعرفك الخادم صاحباً للموقع.'), { need: 'gh' });
@@ -824,7 +831,7 @@ async function malPushLocal() { const meta = malMeta(); if (!meta.on || !meta.ba
     if (l) out.push(malOut(id, l)); else dels.push({ id, del: 1 }); }
   if (!out.length && !dels.length) return; const send = dels.length > 20 ? out : [...out, ...dels];
   MSY.busy = 1; try { const ok = await malSend(send), m = malMeta(); m.base ||= {};
-    for (const x of send) if (ok.has(x.id)) { if (x.del) delete m.base[x.id]; else m.base[x.id] = mkey(P.a[x.id]); } malKeep(m); }
+    for (const x of send) if (ok.has(x.id)) { if (x.del) delete m.base[x.id]; else m.base[x.id] = mkey(P.a[x.id]); } malKeep(m); if (out.some(x => !ADDAT.at?.[x.id])) setTimeout(() => malAdded(), 1500); }
   catch (e) { MSY.msg = esc(e.message); MSY.ok = false; } finally { MSY.busy = 0; if ($('#imp')?.open) drawImp(); } }
 // المزامنة الكاملة: تسحب قائمتك من MyAnimeList وتقارنها بسجلّك وباللقطة
 async function malSync(why) { if (malRun) return malRun; return malRun = (async () => { const meta = malMeta(); if (!meta.on || !ghToken()) return;
@@ -855,7 +862,7 @@ async function malSync(why) { if (malRun) return malRun; return malRun = (async 
     let wrote = 0; if (unknown.length) try { wrote = await catalogAdd(unknown); if (wrote) renderAll(true); } catch (e) { notes.push(esc(e.message)); }
     const got = take.length + localDel.length, sent = ok.size;
     MSY.ok = true; MSY.msg = (got || sent || why === 'now' || why === 'first' ? `تمّت المزامنة: ${got ? `وصل من ${ltr('MyAnimeList')} ${nWorks(got)}` : `لا جديد من ${ltr('MyAnimeList')}`}${sent ? `، وأُرسل إليه ${nWorks(sent)}` : ''}${wrote ? `، وكُتب في قائمة الموقع ${nWorks(wrote)} لم تكن فيها` : ''}.` : '') + (notes.length ? ' ' + notes.join(' ') : '');
-    if (got && !$('#imp')?.open) toast(`وصل من ${ltr('MyAnimeList')} ${nWorks(got)}`); }
+    if (got && !$('#imp')?.open) toast(`وصل من ${ltr('MyAnimeList')} ${nWorks(got)}`); malAdded(); }
   catch (e) { MSY.ok = false; MSY.msg = esc(e.message || 'تعذّرت المزامنة.'); MSY.need = e.malNeed || ''; if (e.malNeed === 'link') { const m = malMeta(); m.on = false; malKeep(m); } }
   finally { MSY.busy = 0; malRun = null; if ($('#imp')?.open) drawImp(); } })(); }
 async function malLink() { if (!ghToken()) { openKeys('gh', 'ربط MyAnimeList يحتاج رمز GitHub على هذا الجهاز: به يعرفك الخادم صاحباً للموقع.', r => { drawImp(); if (r.gh) malLink(); }); return; }
