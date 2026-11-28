@@ -1,0 +1,26 @@
+{
+  "accounts": "https://cjng-accounts.netlify.app",
+  "firebase": {
+    "apiKey": "AIzaSyABNy1DomQUpC8RfcPR8spqJgoWna6ynAs",
+    "authDomain": "cjng-portals.firebaseapp.com",
+    "databaseURL": "https://cjng-portals-default-rtdb.europe-west1.firebasedatabase.app",
+    "projectId": "cjng-portals",
+    "storageBucket": "cjng-portals.firebasestorage.app",
+    "messagingSenderId": "770416754980",
+    "appId": "1:770416754980:web:2161b7479e55fa2dd433b1"
+  },
+  "doors": {
+    "anime": {
+      "tall": "art/anime-tall.webp",
+      "wide": "art/anime-wide.webp"
+    },
+    "films": {
+      "tall": "art/films-tall.webp",
+      "wide": "art/films-wide.webp"
+    },
+    "games": {
+      "tall": "art/games-tall.webp",
+      "wide": "art/games-wide.webp"
+    }
+  }
+}
