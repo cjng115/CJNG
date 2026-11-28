@@ -55,16 +55,6 @@ async function list() { const out = []; let next = `/users/@me/animelist?${new U
       s: s.status, p: s.num_episodes_watched || 0, r: s.score || 0, b: s.start_date || null, e: s.finish_date || null, u: s.updated_at || null });
     next = j.paging?.next || null; }
   return out; }
-// متى أضفت كل عمل إلى قائمتك (created_at). واجهة MyAnimeList الرسمية لا تعطيه، فيُقرأ من صفحة قائمتك نفسها (load.json، 300 في الصفحة)
-async function added() { const r = await mal('/users/@me'); if (!r.ok) throw fail('تعذّر التعرف على حسابك في MyAnimeList الآن.', 502);
-  const name = (await r.json()).name; if (!/^[\w-]{2,30}$/.test(name || '')) throw fail('اسم حسابك في MyAnimeList غير متوقع.', 502);
-  const at = {};
-  for (let off = 0; off < 20000; off += 300) { const q = await fetch(`https://myanimelist.net/animelist/${name}/load.json?status=7&offset=${off}`, { headers: { accept: 'application/json', 'user-agent': 'Mozilla/5.0 (watch-portals)' }, signal: AbortSignal.timeout(15000) }).catch(() => null);
-    if (!q?.ok) { if (off) break; throw fail('تعذّر قراءة تواريخ الإضافة من MyAnimeList الآن.', 502); }
-    const j = await q.json().catch(() => null); if (!Array.isArray(j)) break;
-    for (const x of j) if (Number.isInteger(x?.anime_id) && Number.isInteger(x?.created_at)) at[x.anime_id] = x.created_at;
-    if (j.length < 300) break; }
-  return at; }
 // كتابة دفعة: لكل عمل حالته وحلقاته وتقييمه وتاريخاه، أو حذفه من قائمتك هناك
 const STAT = new Set(['watching', 'completed', 'on_hold', 'dropped', 'plan_to_watch']), DAY = /^\d{4}-\d{2}-\d{2}$/;
 async function push(items, until) { const done = [], todo = [];
@@ -105,7 +95,6 @@ export default async req => {
       return json(200, { url: `${AUTH}/authorize?${new URLSearchParams({ response_type: 'code', client_id: ID(), redirect_uri: self, state, code_challenge: v, code_challenge_method: 'plain' })}` }); }
     if (b.action === 'unlink') { await store().delete('token'); return json(200, { linked: false }); }
     if (b.action === 'list') return json(200, { items: await list() });
-    if (b.action === 'added') return json(200, { at: await added() });
     if (b.action === 'push') return json(200, await push(Array.isArray(b.items) ? b.items : [], t0 + 8000));
     return json(400, { error: 'طلب غير معروف.' });
   } catch (e) {
