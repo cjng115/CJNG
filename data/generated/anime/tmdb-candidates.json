@@ -94,6 +94,15 @@
    },
    {
     "k": "movie",
+    "id": 23151,
+    "name": "The Garden of Sinners: A Study in Murder - Part 1",
+    "orig": "劇場版「空の境界」第二章 殺人考察（前）",
+    "date": "2007-12-29",
+    "min": 60,
+    "genres": "Animation/Action/Crime/Romance/Mystery"
+   },
+   {
+    "k": "movie",
     "id": 23153,
     "name": "The Garden of Sinners: Remaining Sense of Pain",
     "orig": "劇場版「空の境界」第三章 痛覚残留",
@@ -109,15 +118,6 @@
     "date": "2008-12-20",
     "min": 59,
     "genres": "Animation/Fantasy/Mystery/Romance"
-   },
-   {
-    "k": "movie",
-    "id": 23154,
-    "name": "The Garden of Sinners: The Hollow Shrine",
-    "orig": "劇場版「空の境界」第四章 伽藍の洞",
-    "date": "2008-05-24",
-    "min": 45,
-    "genres": "Animation/Fantasy/Action/Mystery"
    }
   ]
  },
@@ -579,6 +579,33 @@
     "eps": 10,
     "genres": "Animation/Action & Adventure/Sci-Fi & Fantasy",
     "seasons": "0:2(2026-07-04) 1:10(2026-07-07)"
+   }
+  ]
+ },
+ {
+  "id": 39046,
+  "t": "Puchimas!: Petit iDOLM@STER (OVA)",
+  "en": null,
+  "type": "OVA",
+  "eps": 2,
+  "from": "2018-03-26",
+  "to": "2018-11-26",
+  "was": {
+   "k": "tv",
+   "id": 53138,
+   "s": 0,
+   "o": 8
+  },
+  "cands": [
+   {
+    "k": "tv",
+    "id": 124054,
+    "name": "Puchimas!: Petit Idolm@ster",
+    "orig": "ぷちます!!-プチプチ・アイドルマスター-",
+    "date": "2013-01-01",
+    "eps": 74,
+    "genres": "Animation",
+    "seasons": "1:64(2013-01-01) 2:74(2014-04-01)"
    }
   ]
  },
